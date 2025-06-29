@@ -4,7 +4,7 @@ import {
   Users, 
   MessageSquare, 
   BarChart3, 
-  Settings, 
+  Settings as SettingsIcon, 
   Play, 
   Pause, 
   Target,
@@ -48,7 +48,7 @@ function App() {
     { id: 'campaigns', label: 'Campaign Manager', icon: Target },
     { id: 'analytics', label: 'Analytics', icon: TrendingUp },
     { id: 'ai-assistant', label: 'AI Assistant', icon: Bot },
-    { id: 'settings', label: 'Settings', icon: Settings }
+    { id: 'settings', label: 'Settings', icon: SettingsIcon }
   ];
 
   const toggleBot = () => {

@@ -1,4 +1,35 @@
 import React, { useState } from 'react';
+
+interface Campaign {
+  id: number;
+  name: string;
+  status: 'active' | 'paused' | 'completed';
+  budget: number;
+  spent: number;
+  targetInvites: number;
+  sentInvites: number;
+  responses: number;
+  collaborations: number;
+  revenue: number;
+  startDate: string;
+  endDate: string;
+  categories: string[];
+  followerRange: { min: number; max: number };
+  description: string;
+}
+
+interface NewCampaign {
+  name: string;
+  budget: number;
+  targetInvites: number;
+  startDate: string;
+  endDate: string;
+  categories: string[];
+  followerMin: number;
+  followerMax: number;
+  description: string;
+  gmvThreshold: number;
+}
 import { 
   Plus, 
   Play, 
@@ -13,12 +44,13 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  Settings
+  Settings as SettingsIcon,
+  X
 } from 'lucide-react';
 
 const CampaignManager: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [campaigns, setCampaigns] = useState([
+  const [campaigns, setCampaigns] = useState<Campaign[]>([
     {
       id: 1,
       name: 'Mobile Repair Accessories Q1',
@@ -183,7 +215,7 @@ const CampaignManager: React.FC = () => {
                   {campaign.status === 'active' ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                 </button>
                 <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                  <Settings className="w-4 h-4" />
+                  <SettingsIcon className="w-4 h-4" />
                 </button>
               </div>
             </div>
