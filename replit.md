@@ -103,8 +103,102 @@ This is a full-stack TikTok affiliate marketing automation platform built to hel
 - Environment-based configuration (DATABASE_URL)
 - Support for both development and production databases
 
+## Enterprise Architecture Components
+
+### 1. Authentication & Security
+- **JWT Token Authentication**: Secure token-based auth with 7-day expiry
+- **Bcrypt Password Hashing**: Industry-standard password security
+- **Role-Based Access Control**: User roles and permissions system
+- **API Rate Limiting**: Protect against abuse with express-rate-limit
+- **Helmet Security Headers**: Enhanced security headers for production
+
+### 2. TikTok API Integration
+- **OAuth 2.0 Flow**: Official TikTok Business API authentication
+- **Creator Discovery**: Search creators by category, location, followers, engagement
+- **Messaging API**: Send collaboration invitations directly through TikTok
+- **Webhook Integration**: Real-time updates on message views and responses
+- **GMV Tracking**: Monitor creator's gross merchandise value for affiliate sales
+
+### 3. Campaign Automation Engine
+- **Event-Driven Architecture**: Asynchronous campaign execution with EventEmitter
+- **Smart Targeting**: AI-powered creator matching based on campaign criteria
+- **Rate-Limited Sending**: Configurable delays between invitations
+- **Retry Mechanisms**: Automatic retry for failed invitations
+- **Real-Time Monitoring**: Track campaign progress and performance
+
+### 4. AI-Powered Features (Gemini Integration)
+- **Creator Analysis**: Relevance scoring and fit assessment
+- **Message Optimization**: AI-optimized outreach templates
+- **Campaign Strategy**: Data-driven campaign recommendations
+- **Market Insights**: Real-time trend analysis and recommendations
+- **Response Analysis**: Sentiment analysis for creator responses
+
+### 5. Database Schema (PostgreSQL)
+- **Users**: Company accounts with TikTok Business integration
+- **Creators**: Comprehensive creator profiles with performance metrics
+- **Campaigns**: Full campaign lifecycle management
+- **Invitations**: Detailed invitation tracking and status
+- **Collaborations**: Active partnership management
+- **Analytics Events**: Complete event tracking for insights
+- **API Keys**: Secure third-party service integration
+
+### 6. API Endpoints
+- **Authentication**: `/api/auth/register`, `/api/auth/login`, `/api/auth/me`
+- **Campaigns**: Full CRUD operations, automation controls, performance reports
+- **Creators**: Search, analyze, trending discovery
+- **Analytics**: Dashboard metrics, time-series data, market insights
+- **Webhooks**: TikTok and payment processor integration
+
+### 7. Production Features
+- **Environment-Based Configuration**: Separate dev/prod settings
+- **Database Migrations**: Drizzle ORM for schema management
+- **Error Handling**: Comprehensive error handling and logging
+- **Performance Monitoring**: Analytics event tracking
+- **Scalability**: Designed for horizontal scaling
+
+## Development vs Production
+
+### Current Development Implementation
+- In-memory storage for rapid prototyping
+- Mock TikTok API responses for testing
+- Local authentication without external OAuth
+- Simplified campaign automation
+
+### Production Requirements
+- PostgreSQL database with connection pooling
+- TikTok Business API credentials
+- Redis for session storage and caching
+- Background job queue (Bull/BullMQ)
+- CDN for static assets
+- SSL/TLS certificates
+- Monitoring (Sentry, DataDog)
+- Load balancing for scale
+
+## API Keys Required for Production
+1. **TikTok Business API**: OAuth client ID and secret
+2. **Google Gemini API**: For AI-powered features
+3. **Stripe API**: For payment processing (optional)
+4. **SendGrid/Postmark**: For transactional emails
+5. **Twilio**: For SMS notifications (optional)
+
+## Security Considerations
+- All API keys stored as environment variables
+- JWT secrets rotated regularly
+- Database credentials encrypted
+- HTTPS enforced in production
+- CORS properly configured
+- Input validation on all endpoints
+- SQL injection protection via Drizzle ORM
+
 ## Changelog
-- June 29, 2025. Initial setup
+- June 29, 2025: Initial setup
+- June 29, 2025: Migrated from Bolt to Replit with enterprise architecture
+- June 29, 2025: Implemented comprehensive database schema
+- June 29, 2025: Added authentication system with JWT
+- June 29, 2025: Created TikTok API integration service
+- June 29, 2025: Built campaign automation engine
+- June 29, 2025: Integrated Gemini AI for intelligent features
+- June 29, 2025: Implemented full REST API with proper routing
 
 ## User Preferences
 

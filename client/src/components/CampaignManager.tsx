@@ -104,7 +104,7 @@ const CampaignManager: React.FC = () => {
     }
   ]);
 
-  const [newCampaign, setNewCampaign] = useState({
+  const [newCampaign, setNewCampaign] = useState<NewCampaign>({
     name: '',
     budget: 0,
     targetInvites: 0,
