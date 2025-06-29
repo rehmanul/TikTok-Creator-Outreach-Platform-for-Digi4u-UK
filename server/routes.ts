@@ -6,6 +6,7 @@ import campaignRoutes from "./routes/campaigns";
 import creatorRoutes from "./routes/creators";
 import webhookRoutes from "./routes/webhooks";
 import analyticsRoutes from "./routes/analytics";
+import tiktokRoutes from "./routes/tiktok";
 import { campaignEngine } from "./services/campaignAutomation";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -24,6 +25,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/creators", creatorRoutes);
   app.use("/api/webhooks", webhookRoutes);
   app.use("/api/analytics", analyticsRoutes);
+  app.use("/api/tiktok", tiktokRoutes);
 
   // Listen to campaign automation events
   campaignEngine.on("campaign:started", async ({ campaignId }) => {

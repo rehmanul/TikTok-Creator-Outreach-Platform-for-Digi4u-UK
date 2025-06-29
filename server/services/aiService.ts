@@ -23,6 +23,9 @@ export class AIService {
 
   constructor() {
     this.apiKey = process.env.GEMINI_API_KEY || '';
+    if (!this.apiKey) {
+      throw new Error('GEMINI_API_KEY environment variable is required for AI features');
+    }
   }
 
   // Analyze creator for campaign fit
