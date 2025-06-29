@@ -97,6 +97,43 @@ router.get('/search', async (req, res) => {
   }
 });
 
+// Get creator insights from TikTok API
+router.get('/:id/insights', async (req, res) => {
+  try {
+    const creator = await storage.getCreator(parseInt(req.params.id));
+    
+    if (!creator) {
+      return res.status(404).json({ message: 'Creator not found' });
+    }
+    
+    try {
+      const insights = await tiktokApi.getCreatorInsights(creator.tiktokId);
+      res.json(insights);
+    } catch (apiError) {
+      console.error('Failed to fetch creator insights:', apiError);
+      res.status(500).json({ 
+        message: 'Failed to fetch creator insights from TikTok API',
+        fallback: {
+          avg_engagement_rate: parseFloat(creator.engagementRate || '0'),
+          avg_video_views: creator.avgViews || 0,
+          growth_rate: 0,
+          best_posting_times: [],
+          top_performing_content: [],
+          audience_data: {
+            gender_distribution: { male: 50, female: 50, other: 0 },
+            age_distribution: { '18-24': 40, '25-34': 35, '35-44': 20, '45+': 5 },
+            top_countries: [],
+            top_interests: creator.categories || []
+          }
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Creator insights error:', error);
+    res.status(500).json({ message: 'Failed to get creator insights' });
+  }
+});
+
 // Get creator details
 router.get('/:id', async (req, res) => {
   try {

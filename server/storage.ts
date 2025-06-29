@@ -46,6 +46,7 @@ export interface IStorage {
   createCollaboration(collaboration: InsertCollaboration): Promise<Collaboration>;
   updateCollaboration(id: number, updates: Partial<Collaboration>): Promise<void>;
   getCollaborationsByUser(userId: number): Promise<Collaboration[]>;
+  getCollaborationsByCampaign(campaignId: number): Promise<Collaboration[]>;
   
   // Analytics operations
   trackEvent(event: {
@@ -258,6 +259,17 @@ export class MemStorage implements IStorage {
     // Get invitations for those campaigns
     const invitations = Array.from(this.invitations.values())
       .filter(i => campaignIds.includes(i.campaignId));
+    const invitationIds = invitations.map(i => i.id);
+    
+    // Get collaborations for those invitations
+    return Array.from(this.collaborations.values())
+      .filter(c => invitationIds.includes(c.invitationId));
+  }
+
+  async getCollaborationsByCampaign(campaignId: number): Promise<Collaboration[]> {
+    // Get invitations for this campaign
+    const invitations = Array.from(this.invitations.values())
+      .filter(i => i.campaignId === campaignId);
     const invitationIds = invitations.map(i => i.id);
     
     // Get collaborations for those invitations
