@@ -200,7 +200,7 @@ function initializeTestingInterface() {
     document.getElementById('test-prompt').value = useCasePrompts[scenario] || '';
   });
 
-  runTestBtn.addEventListener('click', function() {
+  runTestBtn.addEventListener('click', async function() {
     const model = document.getElementById('test-model').value;
     const scenario = document.getElementById('test-scenario').value;
     const customPrompt = document.getElementById('test-prompt').value;
@@ -214,162 +214,48 @@ function initializeTestingInterface() {
     runTestBtn.disabled = true;
     testResults.textContent = 'Processing your request...';
 
-    // Simulate API call
-    setTimeout(() => {
-      const mockResponse = generateMockResponse(scenario, model);
-      displayTestResults(mockResponse, model);
+    try {
+      // Real API call to backend
+      const response = await fetch('/api/ai/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model,
+          scenario,
+          prompt: customPrompt
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get AI response');
+      }
+
+      const data = await response.json();
+      displayTestResults(data.response, model);
+    } catch (error) {
+      testResults.textContent = 'Error: Failed to connect to AI service. Please check your API configuration.';
+      console.error('AI test error:', error);
+    } finally {
       runTestBtn.textContent = 'Run Test';
       runTestBtn.disabled = false;
-    }, 3000);
+    }
   });
 }
 
-function generateMockResponse(scenario, model) {
-  const responses = {
-    creator_analysis: `Based on the analysis of @techreview_uk:
-
-**Collaboration Potential: HIGH (8.5/10)**
-
-**Profile Insights:**
-- Strong tech focus aligns perfectly with mobile accessories
-- High engagement rate (12.3%) indicates active audience
-- Demographics: 68% male, 25-34 age group (ideal for tech products)
-- Peak posting times: 6-8 PM GMT (optimal for UK audience)
-
-**Recommendations:**
-1. Offer exclusive early access to new phone repair tools
-2. Create content around "phone repair myths vs reality"
-3. Propose commission rate of 8-12% based on engagement metrics
-4. Suggest collaboration timeline: 2-week campaign with 4-5 posts
-
-**Estimated Performance:**
-- Expected reach: 25,000-35,000 viewers
-- Projected conversion rate: 2.3-3.1%
-- Estimated revenue impact: £450-680`,
-
-    message_optimization: `**Optimized Message:**
-
-"Hi [Creator Name] 👋
-
-I've been following your tech reviews and love your authentic approach to product testing! Your recent video on phone screen protectors really resonated with your audience.
-
-I'm [Your Name] from Digi4u, and we specialize in premium mobile repair accessories that I think would be perfect for your tech-focused content. 
-
-**What we're offering:**
-✅ Exclusive early access to our latest repair tools
-✅ Competitive commission structure (8-12%)
-✅ Full creative freedom - no scripted content
-✅ High-quality products your audience will actually love
-
-Would you be interested in a quick 15-minute call this week to discuss a potential collaboration? I have some exciting product launches that could align perfectly with your content calendar.
-
-Looking forward to potentially working together!
-
-Best regards,
-[Your Name]
-Digi4u Partnership Team"
-
-**Key Improvements:**
-- Personalized opening shows genuine interest
-- Clear value proposition
-- Professional but friendly tone
-- Specific benefits listed
-- Clear call-to-action
-- 73% higher response rate potential`,
-
-    campaign_strategy: `**UK Mobile Repair Accessories Campaign Strategy**
-
-**Campaign Overview:**
-"RepairTech Creators" - 90-day influencer campaign targeting UK TikTok tech creators
-
-**Phase 1: Foundation (Days 1-30)**
-- Identify 50 top tech creators (10K-500K followers)
-- Segment by: Tech reviewers, DIY enthusiasts, Lifestyle tech
-- Create tiered commission structure: 8-15% based on follower count
-
-**Phase 2: Launch (Days 31-60)**
-- Onboard 15-20 creators per tier
-- Provide exclusive product bundles for authentic reviews
-- Launch hashtag: #RepairLikeAPro
-- Cross-platform amplification (Instagram, YouTube Shorts)
-
-**Phase 3: Scale (Days 61-90)**
-- Performance-based tier upgrades
-- User-generated content contests
-- Micro-influencer expansion (1K-10K followers)
-
-**Budget Allocation:**
-- Creator fees: 60% (£12,000)
-- Products/samples: 25% (£5,000)
-- Platform advertising: 10% (£2,000)
-- Management/tools: 5% (£1,000)
-
-**Expected Results:**
-- Reach: 2.5M+ UK users
-- Engagement: 180K+ interactions
-- Conversions: 1,200-1,800 sales
-- ROI: 280-340%`,
-
-    market_insights: `**UK Mobile Repair Market - TikTok Insights**
-
-**Market Trends (Q4 2024 - Q1 2025):**
-
-**1. Content Performance Metrics:**
-- "Phone repair hacks" videos: +340% engagement vs. general tech
-- DIY repair content: 2.3M UK views monthly
-- Tool reviews: 85% higher click-through rates
-- Peak engagement: Thursday-Sunday, 6-9 PM
-
-**2. Audience Demographics:**
-- Primary: Males 25-34 (42%)
-- Secondary: Females 18-24 (31%)
-- Income: £25K-45K annually (67%)
-- Location hotspots: London, Manchester, Birmingham
-
-**3. Popular Content Themes:**
-- "Budget repair vs professional" comparisons
-- "Common phone problems solved"
-- "Repair tool unboxing and testing"
-- "Before/after transformation videos"
-
-**4. Competitive Landscape:**
-- iFixit: Dominant in educational content
-- Local repair shops: Growing TikTok presence
-- Chinese tool manufacturers: Price-focused messaging
-
-**5. Opportunity Gaps:**
-- Premium tool reviews (underserved)
-- Female-focused repair content (untapped)
-- Business/commercial repair solutions
-- Sustainability angle (eco-friendly repairs)
-
-**Recommendations:**
-1. Focus on premium tool differentiation
-2. Develop female creator partnerships
-3. Create educational series content
-4. Leverage sustainability messaging for Gen Z appeal`
-  };
-
-  return responses[scenario] || "Mock response generated successfully. This demonstrates the AI integration working properly.";
-}
-
-function displayTestResults(response, model) {
+function displayTestResults(response, model, metrics = {}) {
   const testResults = document.getElementById('test-results');
   const testMetrics = document.getElementById('test-metrics');
 
   testResults.textContent = response;
   testMetrics.style.display = 'grid';
 
-  // Generate mock metrics
-  const inputTokens = Math.floor(Math.random() * 300) + 200;
-  const outputTokens = Math.floor(Math.random() * 400) + 300;
-  const responseTime = Math.floor(Math.random() * 2000) + 1000;
+  // Use real metrics from API response
   const modelPricing = geminiModels[model].pricing;
-  const cost = ((inputTokens * modelPricing.input) + (outputTokens * modelPricing.output)) / 1000000;
+  const cost = ((metrics.inputTokens * modelPricing.input) + (metrics.outputTokens * modelPricing.output)) / 1000000;
 
-  document.getElementById('response-time').textContent = `${responseTime}ms`;
-  document.getElementById('input-tokens').textContent = inputTokens.toLocaleString();
-  document.getElementById('output-tokens').textContent = outputTokens.toLocaleString();
+  document.getElementById('response-time').textContent = `${metrics.responseTime || 'N/A'}ms`;
+  document.getElementById('input-tokens').textContent = (metrics.inputTokens || 0).toLocaleString();
+  document.getElementById('output-tokens').textContent = (metrics.outputTokens || 0).toLocaleString();
   document.getElementById('estimated-cost').textContent = `$${cost.toFixed(4)}`;
 }
 
@@ -476,7 +362,7 @@ function initializeAiAssistant() {
     });
   });
 
-  function sendMessage() {
+  async function sendMessage() {
     const message = messageInput.value.trim();
     if (!message) return;
 
@@ -487,12 +373,27 @@ function initializeAiAssistant() {
     // Show typing indicator
     const typingIndicator = addMessage('AI is thinking...', 'assistant');
     
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      // Real API call
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message })
+      });
+
       chatContainer.removeChild(typingIndicator);
-      const response = generateAiResponse(message);
-      addMessage(response, 'assistant');
-    }, 2000);
+
+      if (!response.ok) {
+        throw new Error('Failed to get AI response');
+      }
+
+      const data = await response.json();
+      addMessage(data.response, 'assistant');
+    } catch (error) {
+      chatContainer.removeChild(typingIndicator);
+      addMessage('Unable to connect to AI service. Please check your API configuration.', 'assistant');
+      console.error('AI chat error:', error);
+    }
   }
 
   function addMessage(content, type) {

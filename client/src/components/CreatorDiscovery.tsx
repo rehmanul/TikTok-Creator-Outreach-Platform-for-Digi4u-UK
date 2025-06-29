@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Search, 
   Filter, 
@@ -13,8 +13,12 @@ import {
   MoreHorizontal,
   CheckCircle,
   Clock,
-  X
+  X,
+  AlertCircle,
+  Loader2,
+  User
 } from 'lucide-react';
+import type { Creator } from '../../../shared/schema';
 
 const CreatorDiscovery: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -28,104 +32,49 @@ const CreatorDiscovery: React.FC = () => {
   });
   const [selectedCreators, setSelectedCreators] = useState<number[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [creators, setCreators] = useState<Creator[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const mockCreators = [
-    {
-      id: 1,
-      username: '@techreview_uk',
-      displayName: 'Tech Review UK',
-      followers: 125000,
-      engagement: 8.4,
-      avgViews: 45000,
-      category: 'Technology',
-      location: 'London, UK',
-      gmv: 15000,
-      recentTopics: ['iPhone 15 Review', 'Android vs iOS', 'Phone Accessories'],
-      profileImage: 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=150',
-      verified: true,
-      lastActive: '2 hours ago',
-      responseRate: 85,
-      avgResponseTime: '4 hours'
-    },
-    {
-      id: 2,
-      username: '@phonerepair_pro',
-      displayName: 'Phone Repair Pro',
-      followers: 89000,
-      engagement: 6.2,
-      avgViews: 32000,
-      category: 'DIY & Repair',
-      location: 'Manchester, UK',
-      gmv: 12000,
-      recentTopics: ['Screen Repair Tutorial', 'Battery Replacement', 'Tool Reviews'],
-      profileImage: 'https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&w=150',
-      verified: false,
-      lastActive: '1 day ago',
-      responseRate: 72,
-      avgResponseTime: '8 hours'
-    },
-    {
-      id: 3,
-      username: '@gadget_guru',
-      displayName: 'Gadget Guru',
-      followers: 156000,
-      engagement: 5.8,
-      avgViews: 58000,
-      category: 'Technology',
-      location: 'Birmingham, UK',
-      gmv: 18500,
-      recentTopics: ['Latest Gadgets', 'Tech Unboxing', 'Product Comparisons'],
-      profileImage: 'https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=150',
-      verified: true,
-      lastActive: '5 hours ago',
-      responseRate: 91,
-      avgResponseTime: '2 hours'
-    },
-    {
-      id: 4,
-      username: '@mobile_master',
-      displayName: 'Mobile Master',
-      followers: 67000,
-      engagement: 9.1,
-      avgViews: 28000,
-      category: 'Technology',
-      location: 'Edinburgh, UK',
-      gmv: 8500,
-      recentTopics: ['Mobile Gaming', 'Phone Cases', 'Charging Solutions'],
-      profileImage: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150',
-      verified: false,
-      lastActive: '3 hours ago',
-      responseRate: 68,
-      avgResponseTime: '12 hours'
-    },
-    {
-      id: 5,
-      username: '@repair_wizard',
-      displayName: 'Repair Wizard',
-      followers: 43000,
-      engagement: 7.3,
-      avgViews: 19000,
-      category: 'DIY & Repair',
-      location: 'Liverpool, UK',
-      gmv: 6200,
-      recentTopics: ['DIY Repairs', 'Tool Recommendations', 'Troubleshooting'],
-      profileImage: 'https://images.pexels.com/photos/1181244/pexels-photo-1181244.jpeg?auto=compress&cs=tinysrgb&w=150',
-      verified: false,
-      lastActive: '6 hours ago',
-      responseRate: 79,
-      avgResponseTime: '6 hours'
-    }
-  ];
+  // Fetch creators from API
+  useEffect(() => {
+    fetchCreators();
+  }, [filters]);
 
-  const filteredCreators = mockCreators.filter(creator => {
-    const matchesSearch = creator.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         creator.displayName.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFollowers = creator.followers >= filters.followerMin && creator.followers <= filters.followerMax;
-    const matchesCategory = filters.category === 'all' || creator.category.toLowerCase().includes(filters.category.toLowerCase());
-    const matchesEngagement = creator.engagement >= filters.engagementMin;
-    const matchesGMV = creator.gmv >= filters.gmvMin;
+  const fetchCreators = async () => {
+    setIsLoading(true);
+    setError(null);
     
-    return matchesSearch && matchesFollowers && matchesCategory && matchesEngagement && matchesGMV;
+    try {
+      const params = new URLSearchParams({
+        minFollowers: filters.followerMin.toString(),
+        maxFollowers: filters.followerMax.toString(),
+        location: filters.location,
+        minEngagement: filters.engagementMin.toString(),
+        minGmv: filters.gmvMin.toString(),
+        ...(filters.category !== 'all' && { categories: filters.category })
+      });
+      
+      const response = await fetch(`/api/creators/search?${params}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch creators');
+      }
+      const data = await response.json();
+      setCreators(data);
+    } catch (err) {
+      setError('Failed to load creators. Please try again later.');
+      console.error('Error fetching creators:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Filter creators based on search query
+  const filteredCreators = creators.filter(creator => {
+    const matchesSearch = searchQuery === '' || 
+      creator.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (creator.displayName && creator.displayName.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchesSearch;
   });
 
   const toggleCreatorSelection = (creatorId: number) => {
@@ -136,12 +85,23 @@ const CreatorDiscovery: React.FC = () => {
     );
   };
 
-  const sendBulkInvitations = () => {
+  const sendBulkInvitations = async () => {
     if (selectedCreators.length === 0) return;
     
-    // Simulate sending invitations
-    alert(`Sending invitations to ${selectedCreators.length} creators...`);
-    setSelectedCreators([]);
+    try {
+      const response = await fetch('/api/invitations/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ creatorIds: selectedCreators })
+      });
+      
+      if (response.ok) {
+        setSelectedCreators([]);
+        fetchCreators(); // Refresh the list
+      }
+    } catch (error) {
+      console.error('Failed to send invitations:', error);
+    }
   };
 
   return (
@@ -270,7 +230,7 @@ const CreatorDiscovery: React.FC = () => {
         <div className="p-6 border-b border-gray-200">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold text-gray-900">
-              Found {filteredCreators.length} creators
+              {isLoading ? 'Loading...' : `Found ${filteredCreators.length} creators`}
             </h3>
             <div className="text-sm text-gray-500">
               Sorted by GMV (highest first)
@@ -278,94 +238,128 @@ const CreatorDiscovery: React.FC = () => {
           </div>
         </div>
 
-        <div className="divide-y divide-gray-200">
-          {filteredCreators.map((creator) => (
-            <div key={creator.id} className="p-6 hover:bg-gray-50 transition-colors">
-              <div className="flex items-start space-x-4">
-                <input
-                  type="checkbox"
-                  checked={selectedCreators.includes(creator.id)}
-                  onChange={() => toggleCreatorSelection(creator.id)}
-                  className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                
-                <img
-                  src={creator.profileImage}
-                  alt={creator.displayName}
-                  className="w-12 h-12 rounded-full object-cover"
-                />
-                
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <h4 className="text-lg font-semibold text-gray-900">{creator.displayName}</h4>
-                    <span className="text-gray-500">{creator.username}</span>
-                    {creator.verified && (
-                      <CheckCircle className="w-4 h-4 text-blue-500" />
+        {error && (
+          <div className="p-6">
+            <div className="flex items-center space-x-2 text-red-600">
+              <AlertCircle className="w-5 h-5" />
+              <span>{error}</span>
+            </div>
+          </div>
+        )}
+
+        {isLoading && (
+          <div className="p-12 flex justify-center">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          </div>
+        )}
+
+        {!isLoading && !error && filteredCreators.length === 0 && (
+          <div className="p-12 text-center">
+            <p className="text-gray-500">No creators found matching your criteria.</p>
+          </div>
+        )}
+
+        {!isLoading && !error && filteredCreators.length > 0 && (
+          <div className="divide-y divide-gray-200">
+            {filteredCreators.map((creator) => (
+              <div key={creator.id} className="p-6 hover:bg-gray-50 transition-colors">
+                <div className="flex items-start space-x-4">
+                  <input
+                    type="checkbox"
+                    checked={selectedCreators.includes(creator.id)}
+                    onChange={() => toggleCreatorSelection(creator.id)}
+                    className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  
+                  <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
+                    <User className="w-6 h-6 text-gray-500" />
+                  </div>
+                  
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <h4 className="text-lg font-semibold text-gray-900">
+                        {creator.displayName || creator.username}
+                      </h4>
+                      <span className="text-gray-500">@{creator.username}</span>
+                      {creator.isVerified && (
+                        <CheckCircle className="w-4 h-4 text-blue-500" />
+                      )}
+                    </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
+                      <div className="flex items-center space-x-2">
+                        <Users className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm text-gray-600">
+                          {creator.followerCount.toLocaleString()} followers
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Heart className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm text-gray-600">
+                          {creator.engagementRate || 'N/A'}% engagement
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Eye className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm text-gray-600">
+                          {creator.avgViews ? creator.avgViews.toLocaleString() : 'N/A'} avg views
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <TrendingUp className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm text-gray-600">
+                          £{creator.gmv ? Number(creator.gmv).toLocaleString() : '0'} GMV
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-4 mb-3">
+                      {creator.location && (
+                        <div className="flex items-center space-x-1">
+                          <MapPin className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm text-gray-600">{creator.location}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center space-x-1">
+                        <Clock className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm text-gray-600">
+                          Last updated {new Date(creator.lastUpdated).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {creator.categories && creator.categories.length > 0 && (
+                      <div className="mb-3">
+                        <span className="text-sm font-medium text-gray-700">Categories: </span>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {creator.categories.map((category, index) => (
+                            <span
+                              key={index}
+                              className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                            >
+                              {category}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
                     )}
                   </div>
                   
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
-                    <div className="flex items-center space-x-2">
-                      <Users className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm text-gray-600">{creator.followers.toLocaleString()} followers</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Heart className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm text-gray-600">{creator.engagement}% engagement</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Eye className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm text-gray-600">{creator.avgViews.toLocaleString()} avg views</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <TrendingUp className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm text-gray-600">£{creator.gmv.toLocaleString()} GMV</span>
-                    </div>
+                  <div className="flex flex-col space-y-2">
+                    <button className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                      <Send className="w-4 h-4" />
+                      <span>Invite</span>
+                    </button>
+                    <button className="flex items-center space-x-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                      <Eye className="w-4 h-4" />
+                      <span>View Profile</span>
+                    </button>
                   </div>
-                  
-                  <div className="flex items-center space-x-4 mb-3">
-                    <div className="flex items-center space-x-1">
-                      <MapPin className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm text-gray-600">{creator.location}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <Clock className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm text-gray-600">Active {creator.lastActive}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <span className="text-sm text-gray-600">{creator.responseRate}% response rate</span>
-                    </div>
-                  </div>
-                  
-                  <div className="mb-3">
-                    <span className="text-sm font-medium text-gray-700">Recent topics: </span>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {creator.recentTopics.map((topic, index) => (
-                        <span
-                          key={index}
-                          className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
-                        >
-                          {topic}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex flex-col space-y-2">
-                  <button className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                    <Send className="w-4 h-4" />
-                    <span>Invite</span>
-                  </button>
-                  <button className="flex items-center space-x-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">
-                    <Eye className="w-4 h-4" />
-                    <span>View Profile</span>
-                  </button>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
