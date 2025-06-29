@@ -39,7 +39,7 @@ const Dashboard: React.FC<DashboardProps> = ({ campaignStats, botStatus }) => {
   const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
-      
+
       // Fetch real data from APIs
       const [performance, categories, activity, creators] = await Promise.all([
         fetch('/api/analytics/performance').then(res => res.json()),
@@ -219,42 +219,54 @@ const Dashboard: React.FC<DashboardProps> = ({ campaignStats, botStatus }) => {
         <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
           <div className="space-y-4">
-            {recentActivity.map((activity) => (
-              <div key={activity.id} className="flex items-center space-x-3">
-                <div className={`w-2 h-2 rounded-full ${
-                  activity.status === 'success' ? 'bg-green-500' :
-                  activity.status === 'active' ? 'bg-blue-500' : 'bg-yellow-500'
-                }`}></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900">{activity.creator}</p>
-                  <p className="text-sm text-gray-600">{activity.action}</p>
+            {isLoading ? (
+              <div className="text-center text-gray-500">Loading activities...</div>
+            ) : Array.isArray(recentActivity) && recentActivity.length > 0 ? (
+              recentActivity.map((activity) => (
+                <div key={activity.id} className="flex items-center space-x-3">
+                  <div className={`w-2 h-2 rounded-full ${
+                    activity.status === 'success' ? 'bg-green-500' :
+                    activity.status === 'active' ? 'bg-blue-500' : 'bg-yellow-500'
+                  }`}></div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900">{activity.creator}</p>
+                    <p className="text-sm text-gray-600">{activity.action}</p>
+                  </div>
+                  <span className="text-xs text-gray-500">{activity.time}</span>
                 </div>
-                <span className="text-xs text-gray-500">{activity.time}</span>
-              </div>
-            ))}
+              ))
+            ) : (
+              <div className="text-center text-gray-500">No recent activity</div>
+            )}
           </div>
         </div>
 
         <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Performing Creators</h3>
           <div className="space-y-4">
-            {topCreators.map((creator, index) => (
-              <div key={index} className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                    <span className="text-white text-sm font-bold">{creator.name[1]}</span>
+            {isLoading ? (
+              <div className="text-center text-gray-500">Loading creators...</div>
+            ) : Array.isArray(topCreators) && topCreators.length > 0 ? (
+              topCreators.map((creator, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-sm font-bold">{creator.name[1]}</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{creator.name}</p>
+                      <p className="text-xs text-gray-500">{creator.followers} followers</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{creator.name}</p>
-                    <p className="text-xs text-gray-500">{creator.followers} followers</p>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-gray-900">{creator.revenue}</p>
+                    <p className="text-xs text-gray-500">{creator.engagement} engagement</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-gray-900">{creator.revenue}</p>
-                  <p className="text-xs text-gray-500">{creator.engagement} engagement</p>
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <div className="text-center text-gray-500">No top creators</div>
+            )}
           </div>
         </div>
       </div>
