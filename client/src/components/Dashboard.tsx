@@ -26,37 +26,43 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ campaignStats, botStatus }) => {
-  const performanceData = [
-    { name: 'Mon', invites: 45, responses: 12, conversions: 3 },
-    { name: 'Tue', invites: 52, responses: 15, conversions: 4 },
-    { name: 'Wed', invites: 38, responses: 9, conversions: 2 },
-    { name: 'Thu', invites: 61, responses: 18, conversions: 5 },
-    { name: 'Fri', invites: 55, responses: 16, conversions: 4 },
-    { name: 'Sat', invites: 42, responses: 11, conversions: 3 },
-    { name: 'Sun', invites: 35, responses: 8, conversions: 2 }
-  ];
+  const [performanceData, setPerformanceData] = useState([]);
+  const [categoryData, setCategoryData] = useState([]);
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [topCreators, setTopCreators] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const categoryData = [
-    { name: 'Tech Reviews', value: 35, color: '#3B82F6' },
-    { name: 'DIY Repair', value: 28, color: '#10B981' },
-    { name: 'Gaming', value: 22, color: '#F59E0B' },
-    { name: 'Lifestyle', value: 15, color: '#EF4444' }
-  ];
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
 
-  const recentActivity = [
-    { id: 1, type: 'invite', creator: '@techreview_uk', action: 'Invitation sent', time: '2 minutes ago', status: 'pending' },
-    { id: 2, type: 'response', creator: '@phonerepair_pro', action: 'Positive response received', time: '15 minutes ago', status: 'success' },
-    { id: 3, type: 'collaboration', creator: '@gadget_guru', action: 'Collaboration started', time: '1 hour ago', status: 'active' },
-    { id: 4, type: 'invite', creator: '@mobile_master', action: 'Invitation sent', time: '2 hours ago', status: 'pending' },
-    { id: 5, type: 'response', creator: '@repair_wizard', action: 'Response received', time: '3 hours ago', status: 'success' }
-  ];
+  const fetchDashboardData = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Fetch real data from APIs
+      const [performance, categories, activity, creators] = await Promise.all([
+        fetch('/api/analytics/performance').then(res => res.json()),
+        fetch('/api/analytics/categories').then(res => res.json()),
+        fetch('/api/analytics/activity').then(res => res.json()),
+        fetch('/api/creators/top-performers').then(res => res.json())
+      ]);
 
-  const topCreators = [
-    { name: '@techreview_uk', followers: '125K', engagement: '8.4%', revenue: '£2,450', status: 'active' },
-    { name: '@phonerepair_pro', followers: '89K', engagement: '6.2%', revenue: '£1,890', status: 'active' },
-    { name: '@gadget_guru', followers: '156K', engagement: '5.8%', revenue: '£3,120', status: 'active' },
-    { name: '@mobile_master', followers: '67K', engagement: '9.1%', revenue: '£1,560', status: 'pending' }
-  ];
+      setPerformanceData(performance);
+      setCategoryData(categories);
+      setRecentActivity(activity);
+      setTopCreators(creators);
+    } catch (error) {
+      console.error('Failed to fetch dashboard data:', error);
+      // Fallback to empty arrays
+      setPerformanceData([]);
+      setCategoryData([]);
+      setRecentActivity([]);
+      setTopCreators([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -151,40 +157,60 @@ const Dashboard: React.FC<DashboardProps> = ({ campaignStats, botStatus }) => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Weekly Performance</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={performanceData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="invites" stroke="#3B82F6" strokeWidth={2} />
-              <Line type="monotone" dataKey="responses" stroke="#10B981" strokeWidth={2} />
-              <Line type="monotone" dataKey="conversions" stroke="#F59E0B" strokeWidth={2} />
-            </LineChart>
-          </ResponsiveContainer>
+          {isLoading ? (
+            <div className="h-[300px] flex items-center justify-center">
+              <div className="text-gray-500">Loading performance data...</div>
+            </div>
+          ) : performanceData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={performanceData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="invites" stroke="#3B82F6" strokeWidth={2} />
+                <Line type="monotone" dataKey="responses" stroke="#10B981" strokeWidth={2} />
+                <Line type="monotone" dataKey="conversions" stroke="#F59E0B" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[300px] flex items-center justify-center">
+              <div className="text-gray-500">No performance data available</div>
+            </div>
+          )}
         </div>
 
         <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Creator Categories</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={categoryData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {categoryData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
+          {isLoading ? (
+            <div className="h-[300px] flex items-center justify-center">
+              <div className="text-gray-500">Loading category data...</div>
+            </div>
+          ) : categoryData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={categoryData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {categoryData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[300px] flex items-center justify-center">
+              <div className="text-gray-500">No category data available</div>
+            </div>
+          )}
         </div>
       </div>
 

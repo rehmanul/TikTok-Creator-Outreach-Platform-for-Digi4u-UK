@@ -34,13 +34,46 @@ import AIAssistant from './components/AIAssistant';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [botStatus, setBotStatus] = useState('stopped');
+  const [user, setUser] = useState(null);
   const [campaignStats, setCampaignStats] = useState({
-    totalInvites: 1247,
-    responseRate: 23.4,
-    activeCollaborations: 18,
-    totalRevenue: 12450
+    totalInvites: 0,
+    responseRate: 0,
+    activeCollaborations: 0,
+    totalRevenue: 0
   });
+  const [botStatus, setBotStatus] = useState('inactive');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchCampaignStats();
+    checkBotStatus();
+  }, []);
+
+  const fetchCampaignStats = async () => {
+    try {
+      const response = await fetch('/api/analytics/campaign-stats');
+      if (response.ok) {
+        const stats = await response.json();
+        setCampaignStats(stats);
+      }
+    } catch (error) {
+      console.error('Failed to fetch campaign stats:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const checkBotStatus = async () => {
+    try {
+      const response = await fetch('/api/campaigns/bot-status');
+      if (response.ok) {
+        const { status } = await response.json();
+        setBotStatus(status);
+      }
+    } catch (error) {
+      console.error('Failed to check bot status:', error);
+    }
+  };
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
@@ -91,7 +124,7 @@ function App() {
                 </div>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
                 <div className={`w-2 h-2 rounded-full ${botStatus === 'running' ? 'bg-green-500' : 'bg-red-500'}`}></div>
@@ -99,7 +132,7 @@ function App() {
                   Bot {botStatus === 'running' ? 'Running' : 'Stopped'}
                 </span>
               </div>
-              
+
               <button
                 onClick={toggleBot}
                 className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${

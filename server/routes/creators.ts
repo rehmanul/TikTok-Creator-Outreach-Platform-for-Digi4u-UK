@@ -211,4 +211,49 @@ router.get('/trending/:category', async (req, res) => {
   }
 });
 
+// Get top performing creators
+router.get('/top-performers', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const campaigns = await storage.getCampaignsByUser(userId);
+    const creatorPerformance = new Map();
+
+    for (const campaign of campaigns) {
+      const collaborations = await storage.getCollaborationsByCampaign(campaign.id);
+      
+      for (const collaboration of collaborations) {
+        const creator = await storage.getCreator(collaboration.creatorId);
+        if (creator) {
+          const existing = creatorPerformance.get(creator.id) || {
+            name: `@${creator.username}`,
+            followers: creator.followerCount > 1000 ? `${Math.round(creator.followerCount / 1000)}K` : creator.followerCount.toString(),
+            engagement: creator.engagementRate ? `${creator.engagementRate}%` : 'N/A',
+            revenue: 0,
+            status: collaboration.status
+          };
+          
+          existing.revenue += Number(collaboration.revenue || 0);
+          creatorPerformance.set(creator.id, existing);
+        }
+      }
+    }
+
+    const topCreators = Array.from(creatorPerformance.values())
+      .map(creator => ({
+        ...creator,
+        revenue: `£${creator.revenue.toLocaleString()}`
+      }))
+      .sort((a, b) => {
+        const aRevenue = parseFloat(a.revenue.replace('£', '').replace(',', ''));
+        const bRevenue = parseFloat(b.revenue.replace('£', '').replace(',', ''));
+        return bRevenue - aRevenue;
+      })
+      .slice(0, 4);
+
+    res.json(topCreators);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to get top creators' });
+  }
+});
+
 export default router;

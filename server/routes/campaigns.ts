@@ -228,4 +228,22 @@ router.post('/:id/optimize-message', async (req, res) => {
   }
 });
 
+// Get bot status
+router.get('/bot-status', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const campaigns = await storage.getCampaignsByUser(userId);
+    
+    // Check if any campaigns are currently running
+    const hasRunningCampaigns = campaigns.some(campaign => campaign.status === 'running');
+    
+    res.json({
+      status: hasRunningCampaigns ? 'running' : 'inactive',
+      activeCampaigns: campaigns.filter(c => c.status === 'running').length
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to get bot status' });
+  }
+});
+
 export default router;
