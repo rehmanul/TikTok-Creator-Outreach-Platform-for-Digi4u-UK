@@ -114,4 +114,23 @@ router.get('/me', async (req, res) => {
   });
 });
 
+// Demo mode validation
+router.post('/validate-demo', (req, res) => {
+  const { token } = req.body;
+  
+  if (token && token.startsWith('demo-token-')) {
+    return res.json({
+      user: {
+        id: 1,
+        email: 'demo@example.com',
+        companyName: 'Demo Company',
+        role: 'admin'
+      },
+      token
+    });
+  }
+  
+  res.status(401).json({ message: 'Invalid demo token' });
+});
+
 export default router;

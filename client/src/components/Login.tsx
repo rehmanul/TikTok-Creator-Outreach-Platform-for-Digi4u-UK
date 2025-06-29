@@ -153,14 +153,32 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </button>
         </form>
 
-        <div className="mt-6 text-center">
+        <div className="mt-6 text-center space-y-2">
           <button
             onClick={() => setIsLogin(!isLogin)}
-            className="text-blue-600 hover:text-blue-700 font-medium"
+            className="text-blue-600 hover:text-blue-700 font-medium block w-full"
           >
             {isLogin 
               ? "Don't have an account? Sign up" 
               : "Already have an account? Sign in"}
+          </button>
+          
+          <button
+            onClick={() => {
+              // Demo login
+              const demoToken = 'demo-token-' + Date.now();
+              const demoUser = {
+                id: 1,
+                email: 'demo@example.com',
+                companyName: 'Demo Company',
+                role: 'admin'
+              };
+              localStorage.setItem('authToken', demoToken);
+              onLogin(demoToken, demoUser);
+            }}
+            className="text-green-600 hover:text-green-700 font-medium text-sm"
+          >
+            🚀 Try Demo Mode (No signup required)
           </button>
         </div>
       </div>
