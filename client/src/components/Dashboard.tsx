@@ -40,12 +40,24 @@ const Dashboard: React.FC<DashboardProps> = ({ campaignStats, botStatus }) => {
     try {
       setIsLoading(true);
 
+      const token = localStorage.getItem('authToken');
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      };
+
       // Fetch real data from APIs
       const [performance, categories, activity, creators] = await Promise.all([
-        fetch('/api/analytics/performance').then(res => res.json()),
-        fetch('/api/analytics/categories').then(res => res.json()),
-        fetch('/api/analytics/activity').then(res => res.json()),
-        fetch('/api/creators/top-performers').then(res => res.json())
+        fetch('/api/analytics/performance', { headers }).then(res => res.json()),
+        fetch('/api/analytics/categories', { headers }).then(res => res.json()),
+        fetch('/api/analytics/activity', { headers }).then(res => res.json()),
+        fetch('/api/creators/top-performers', { headers }).then(res => res.json())
+      ]);
+
+      // Fetch additional data
+      const [campaignStats, botStatus] = await Promise.all([
+        fetch('/api/analytics/campaign-stats', { headers }).then(res => res.json()),
+        fetch('/api/campaigns/bot-status', { headers }).then(res => res.json())
       ]);
 
       setPerformanceData(performance);

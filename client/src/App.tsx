@@ -23,7 +23,8 @@ import {
   Zap,
   Shield,
   Award,
-  Activity
+  Activity,
+  LogOut
 } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import CreatorDiscovery from './components/CreatorDiscovery';
@@ -31,10 +32,13 @@ import CampaignManager from './components/CampaignManager';
 import Analytics from './components/Analytics';
 import Settings from './components/Settings';
 import AIAssistant from './components/AIAssistant';
+import Login from './components/Login';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
+  const [authToken, setAuthToken] = useState('');
   const [campaignStats, setCampaignStats] = useState({
     totalInvites: 0,
     responseRate: 0,
@@ -45,13 +49,44 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetchCampaignStats();
-    checkBotStatus();
+    // Check for existing auth token on app load
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      setAuthToken(token);
+      setIsAuthenticated(true);
+      // Optionally verify token with backend
+      verifyToken(token);
+    }
   }, []);
+
+  const verifyToken = async (token) => {
+    try {
+      const response = await fetch('/api/auth/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
+      } else {
+        // Token is invalid, log out
+        handleLogout();
+      }
+    } catch (error) {
+      console.error('Token verification failed:', error);
+      handleLogout();
+    }
+  };
 
   const fetchCampaignStats = async () => {
     try {
-      const response = await fetch('/api/analytics/campaign-stats');
+      const response = await fetch('/api/analytics/campaign-stats', {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
       if (response.ok) {
         const stats = await response.json();
         setCampaignStats(stats);
@@ -65,7 +100,11 @@ function App() {
 
   const checkBotStatus = async () => {
     try {
-      const response = await fetch('/api/campaigns/bot-status');
+      const response = await fetch('/api/campaigns/bot-status', {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
       if (response.ok) {
         const { status } = await response.json();
         setBotStatus(status);
@@ -74,6 +113,36 @@ function App() {
       console.error('Failed to check bot status:', error);
     }
   };
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchCampaignStats();
+      checkBotStatus();
+    }
+  }, [isAuthenticated, authToken]);
+
+  const handleLogin = (token, userData) => {
+    localStorage.setItem('authToken', token);
+    setAuthToken(token);
+    setUser(userData);
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    setAuthToken('');
+    setUser(null);
+    setIsAuthenticated(false);
+    setActiveTab('dashboard');
+  };
+
+  // Add auth token to all API requests
+  useEffect(() => {
+    if (authToken) {
+      // Store token globally for API calls
+      window.authToken = authToken;
+    }
+  }, [authToken]);
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
@@ -107,6 +176,10 @@ function App() {
     }
   };
 
+  if (!isAuthenticated) {
+    return <Login onLogin={handleLogin} />;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       {/* Header */}
@@ -126,6 +199,12 @@ function App() {
             </div>
 
             <div className="flex items-center space-x-4">
+              {user && (
+                <div className="text-right">
+                  <p className="text-sm font-medium text-gray-900">{user.companyName}</p>
+                  <p className="text-xs text-gray-600">{user.email}</p>
+                </div>
+              )}
               <div className="flex items-center space-x-2">
                 <div className={`w-2 h-2 rounded-full ${botStatus === 'running' ? 'bg-green-500' : 'bg-red-500'}`}></div>
                 <span className="text-sm font-medium text-gray-700">
@@ -152,6 +231,13 @@ function App() {
                     <span>Start Bot</span>
                   </>
                 )}
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="text-sm">Logout</span>
               </button>
             </div>
           </div>
