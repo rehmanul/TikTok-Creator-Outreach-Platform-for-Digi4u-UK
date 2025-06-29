@@ -19,6 +19,7 @@ import {
   User
 } from 'lucide-react';
 import type { Creator } from '../../../shared/schema';
+import InvitationModal from './InvitationModal';
 
 const CreatorDiscovery: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,6 +36,8 @@ const CreatorDiscovery: React.FC = () => {
   const [creators, setCreators] = useState<Creator[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCreatorForInvite, setSelectedCreatorForInvite] = useState<Creator | null>(null);
+  const [showInviteModal, setShowInviteModal] = useState(false);
 
   // Fetch creators from API
   useEffect(() => {
@@ -123,6 +126,11 @@ const CreatorDiscovery: React.FC = () => {
     }
   };
 
+  const sendIndividualInvitation = (creator: Creator) => {
+    setSelectedCreatorForInvite(creator);
+    setShowInviteModal(true);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -191,17 +199,25 @@ const CreatorDiscovery: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Product Category</label>
                 <select
                   value={filters.category}
                   onChange={(e) => setFilters({...filters, category: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="all">All Categories</option>
-                  <option value="technology">Technology</option>
-                  <option value="diy">DIY & Repair</option>
-                  <option value="gaming">Gaming</option>
-                  <option value="lifestyle">Lifestyle</option>
+                  <option value="home-supplies">🏠 Home Supplies</option>
+                  <option value="kitchenware">🍳 Kitchenware</option>
+                  <option value="textiles">🧸 Textiles & Soft Furnishings</option>
+                  <option value="household-appliances">📱 Household Appliances</option>
+                  <option value="womenswear-underwear">👗 Womenswear & Underwear</option>
+                  <option value="muslim-fashion">🧕 Muslim Fashion</option>
+                  <option value="shoes">👟 Shoes</option>
+                  <option value="phones-electronics">📱 Phones & Electronics</option>
+                  <option value="power-banks">🔋 Power Banks & Chargers</option>
+                  <option value="cables-adapters">🔌 Cables & Adapters</option>
+                  <option value="car-holders">🚗 Car Holders</option>
+                  <option value="speakers">🔊 Speakers & Audio</option>
                 </select>
               </div>
 
@@ -365,13 +381,16 @@ const CreatorDiscovery: React.FC = () => {
                   </div>
                   
                   <div className="flex flex-col space-y-2">
-                    <button className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                    <button 
+                      onClick={() => sendIndividualInvitation(creator)}
+                      className="flex items-center justify-center space-x-2 bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors text-sm font-medium"
+                    >
                       <Send className="w-4 h-4" />
                       <span>Invite</span>
                     </button>
-                    <button className="flex items-center space-x-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                    <button className="flex items-center justify-center space-x-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors text-sm">
                       <Eye className="w-4 h-4" />
-                      <span>View Profile</span>
+                      <span>Profile</span>
                     </button>
                   </div>
                 </div>
@@ -380,6 +399,16 @@ const CreatorDiscovery: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Invitation Modal */}
+      <InvitationModal
+        isOpen={showInviteModal}
+        onClose={() => {
+          setShowInviteModal(false);
+          setSelectedCreatorForInvite(null);
+        }}
+        creator={selectedCreatorForInvite}
+      />
     </div>
   );
 };

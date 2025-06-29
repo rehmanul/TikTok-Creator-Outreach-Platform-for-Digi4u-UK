@@ -303,4 +303,50 @@ router.get('/top-performers', authMiddleware, async (req, res) => {
   }
 });
 
+// Create individual invitation
+router.post('/invite', async (req, res) => {
+  try {
+    const { creatorId, message, contentType, products, commissionRate } = req.body;
+    
+    const creator = await storage.getCreator(creatorId);
+    if (!creator) {
+      return res.status(404).json({ message: 'Creator not found' });
+    }
+
+    // Create invitation record
+    const invitation = await storage.createInvitation({
+      campaignId: null, // Individual invitation
+      creatorId: creatorId,
+      status: 'sent',
+      sentAt: new Date(),
+      message,
+      contentType,
+      products: JSON.stringify(products),
+      commissionRate
+    });
+
+    // Track analytics event
+    await storage.trackEvent({
+      eventType: 'invitation_sent',
+      campaignId: null,
+      creatorId: creatorId,
+      data: { 
+        message, 
+        contentType, 
+        products: products.length,
+        commissionRate 
+      }
+    });
+
+    res.json({ 
+      success: true, 
+      invitationId: invitation.id,
+      message: 'Invitation sent successfully' 
+    });
+  } catch (error) {
+    console.error('Error creating invitation:', error);
+    res.status(500).json({ message: 'Failed to create invitation' });
+  }
+});
+
 export default router;

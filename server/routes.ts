@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import authRoutes from "./routes/auth";
 import campaignRoutes from "./routes/campaigns";
 import creatorRoutes from "./routes/creators";
+import invitationsRoutes from "./routes/invitations";
 import webhookRoutes from "./routes/webhooks";
 import analyticsRoutes from "./routes/analytics";
 import tiktokRoutes from "./routes/tiktok";
@@ -23,6 +24,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/auth", authRoutes);
   app.use("/api/campaigns", campaignRoutes);
   app.use("/api/creators", creatorRoutes);
+  app.use("/api/invitations", invitationsRoutes);
   app.use("/api/webhooks", webhookRoutes);
   app.use("/api/analytics", analyticsRoutes);
   app.use("/api/tiktok", tiktokRoutes);
