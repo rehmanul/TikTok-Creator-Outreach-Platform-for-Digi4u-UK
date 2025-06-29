@@ -46,6 +46,11 @@ const CreatorDiscovery: React.FC = () => {
     setError(null);
     
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
       const params = new URLSearchParams({
         minFollowers: filters.followerMin.toString(),
         maxFollowers: filters.followerMax.toString(),
@@ -55,12 +60,18 @@ const CreatorDiscovery: React.FC = () => {
         ...(filters.category !== 'all' && { categories: filters.category })
       });
       
-      const response = await fetch(`/api/creators/search?${params}`);
+      const response = await fetch(`/api/creators/search?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
       if (!response.ok) {
         throw new Error('Failed to fetch creators');
       }
       const data = await response.json();
-      setCreators(data);
+      setCreators(data.creators || data);
     } catch (err) {
       setError('Failed to load creators. Please try again later.');
       console.error('Error fetching creators:', err);
@@ -89,9 +100,17 @@ const CreatorDiscovery: React.FC = () => {
     if (selectedCreators.length === 0) return;
     
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
       const response = await fetch('/api/invitations/bulk', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ creatorIds: selectedCreators })
       });
       

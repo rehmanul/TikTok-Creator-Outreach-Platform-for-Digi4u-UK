@@ -22,9 +22,19 @@ const searchSchema = z.object({
   limit: z.number().default(20)
 });
 
-router.post('/search', async (req, res) => {
+router.get('/search', async (req, res) => {
   try {
-    const params = searchSchema.parse(req.body);
+    const queryParams = {
+      categories: req.query.categories ? req.query.categories.toString().split(',') : undefined,
+      minFollowers: req.query.minFollowers ? parseInt(req.query.minFollowers.toString()) : undefined,
+      maxFollowers: req.query.maxFollowers ? parseInt(req.query.maxFollowers.toString()) : undefined,
+      location: req.query.location?.toString(),
+      minEngagement: req.query.minEngagement ? parseFloat(req.query.minEngagement.toString()) : undefined,
+      minGmv: req.query.minGmv ? parseInt(req.query.minGmv.toString()) : undefined,
+      page: req.query.page ? parseInt(req.query.page.toString()) : 1,
+      limit: req.query.limit ? parseInt(req.query.limit.toString()) : 20
+    };
+    const params = searchSchema.parse(queryParams);
     
     // Search in database first
     const dbCreators = await storage.searchCreators({
