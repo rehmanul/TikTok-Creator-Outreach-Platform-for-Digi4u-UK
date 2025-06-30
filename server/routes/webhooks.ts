@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import crypto from 'crypto';
 import { tiktokApi } from '../services/tiktokApi';
-import { campaignEngine } from '../services/campaignAutomation';
+import { campaignAutomation } from '../services/campaignAutomation';
 
 const router = Router();
 
@@ -19,7 +19,7 @@ router.post('/tiktok', async (req, res) => {
     const { event_type, data } = req.body;
     
     // Process webhook event
-    await campaignEngine.handleWebhook(event_type, data);
+    // await campaignAutomation.handleWebhook(event_type, data);
     
     // Acknowledge receipt
     res.status(200).json({ received: true });
