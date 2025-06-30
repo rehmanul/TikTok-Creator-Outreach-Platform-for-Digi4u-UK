@@ -1,333 +1,349 @@
+
 import { Campaign, Creator, Invitation } from '@shared/schema';
 import { tiktokApi } from './tiktokApi';
 import { storage } from '../storage';
 import EventEmitter from 'events';
+import cron from 'node-cron';
 
-interface CampaignJob {
-  campaignId: number;
-  status: 'running' | 'paused' | 'completed';
-  processed: number;
-  successful: number;
-  failed: number;
-  startedAt: Date;
+interface AutomationRule {
+  id: string;
+  campaignId: string;
+  isActive: boolean;
+  dailyInviteLimit: number;
+  delayBetweenInvites: number; // minutes
+  creatorCriteria: {
+    categories: string[];
+    minFollowers: number;
+    maxFollowers: number;
+    minEngagementRate: number;
+    locations: string[];
+    verified?: boolean;
+  };
+  messageTemplate: string;
+  schedule: {
+    enabled: boolean;
+    time: string; // HH:MM format
+    timezone: string;
+  };
 }
 
-export class CampaignAutomationEngine extends EventEmitter {
-  private activeJobs: Map<number, CampaignJob> = new Map();
-  private jobIntervals: Map<number, NodeJS.Timeout> = new Map();
+interface AutomationStats {
+  totalInvitesSent: number;
+  responseRate: number;
+  acceptanceRate: number;
+  campaignsActive: number;
+  todayInvites: number;
+  pendingResponses: number;
+}
 
-  // Start automated campaign execution
-  async startCampaign(campaignId: number): Promise<void> {
-    const campaign = await storage.getCampaign(campaignId);
-    if (!campaign) throw new Error('Campaign not found');
-    
-    if (campaign.status !== 'active') {
-      throw new Error('Campaign must be active to start');
-    }
+export class CampaignAutomationService extends EventEmitter {
+  private automationRules: Map<string, AutomationRule> = new Map();
+  private runningAutomations: Set<string> = new Set();
+  private scheduledJobs: Map<string, any> = new Map();
 
-    // Initialize job tracking
-    const job: CampaignJob = {
-      campaignId,
-      status: 'running',
-      processed: 0,
-      successful: 0,
-      failed: 0,
-      startedAt: new Date()
-    };
-    
-    this.activeJobs.set(campaignId, job);
-    this.emit('campaign:started', { campaignId });
-
-    // Start the automation loop
-    await this.processCampaignBatch(campaignId);
-    
-    // Schedule recurring batch processing
-    const interval = setInterval(
-      () => this.processCampaignBatch(campaignId),
-      campaign.inviteDelay * 1000
-    );
-    
-    this.jobIntervals.set(campaignId, interval);
+  constructor() {
+    super();
+    this.initializeScheduler();
   }
 
-  // Process a batch of creators for the campaign
-  private async processCampaignBatch(campaignId: number): Promise<void> {
-    const job = this.activeJobs.get(campaignId);
-    if (!job || job.status !== 'running') return;
+  // Initialize cron scheduler for automated campaigns
+  private initializeScheduler(): void {
+    // Run every hour to check for scheduled automations
+    cron.schedule('0 * * * *', () => {
+      this.checkScheduledAutomations();
+    });
+
+    // Daily cleanup and reporting at midnight
+    cron.schedule('0 0 * * *', () => {
+      this.dailyCleanup();
+    });
+  }
+
+  // Create new automation rule
+  async createAutomationRule(
+    campaignId: string,
+    rule: Omit<AutomationRule, 'id' | 'campaignId'>
+  ): Promise<string> {
+    const ruleId = `auto_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    const automationRule: AutomationRule = {
+      id: ruleId,
+      campaignId,
+      ...rule
+    };
+
+    this.automationRules.set(ruleId, automationRule);
+
+    // Schedule if needed
+    if (rule.schedule.enabled) {
+      this.scheduleAutomation(ruleId);
+    }
+
+    this.emit('automationRuleCreated', { ruleId, campaignId });
+    return ruleId;
+  }
+
+  // Start automated creator discovery and invitation
+  async startAutomatedCampaign(ruleId: string): Promise<void> {
+    const rule = this.automationRules.get(ruleId);
+    if (!rule || !rule.isActive) {
+      throw new Error('Automation rule not found or inactive');
+    }
+
+    if (this.runningAutomations.has(ruleId)) {
+      throw new Error('Automation already running for this rule');
+    }
+
+    this.runningAutomations.add(ruleId);
+    this.emit('automationStarted', { ruleId, campaignId: rule.campaignId });
 
     try {
-      const campaign = await storage.getCampaign(campaignId);
-      if (!campaign) return;
+      // Step 1: Discover creators based on criteria
+      const creators = await tiktokApi.discoverCreatorsAutomated({
+        categories: rule.creatorCriteria.categories,
+        minFollowers: rule.creatorCriteria.minFollowers,
+        maxFollowers: rule.creatorCriteria.maxFollowers,
+        minEngagementRate: rule.creatorCriteria.minEngagementRate,
+        locations: rule.creatorCriteria.locations,
+        verified: rule.creatorCriteria.verified,
+        limit: rule.dailyInviteLimit
+      });
 
-      // Check if we've reached limits
-      if (job.processed >= campaign.inviteLimit) {
-        await this.completeCampaign(campaignId);
-        return;
+      this.emit('creatorsDiscovered', { 
+        ruleId, 
+        campaignId: rule.campaignId, 
+        count: creators.length 
+      });
+
+      // Step 2: Filter out already contacted creators
+      const newCreators = await this.filterNewCreators(rule.campaignId, creators);
+
+      this.emit('creatorsFiltered', { 
+        ruleId, 
+        campaignId: rule.campaignId, 
+        newCount: newCreators.length,
+        totalFound: creators.length
+      });
+
+      // Step 3: Get campaign and product info for personalization
+      const campaign = await storage.getCampaignById(rule.campaignId);
+      if (!campaign) {
+        throw new Error('Campaign not found');
       }
 
-      // Find matching creators that haven't been invited
-      const creators = await this.findTargetCreators(campaign);
-      
-      if (creators.length === 0) {
-        this.emit('campaign:no_creators', { campaignId });
-        return;
-      }
-
-      // Process creators in parallel with rate limiting
-      const batchSize = Math.min(5, campaign.inviteLimit - job.processed);
-      const batch = creators.slice(0, batchSize);
-      
-      const results = await Promise.allSettled(
-        batch.map(creator => this.sendInvitation(campaign, creator))
+      // Step 4: Send automated invitations with rate limiting
+      const results = await tiktokApi.sendAutomatedInvitations(
+        rule.campaignId,
+        newCreators,
+        rule.messageTemplate,
+        campaign
       );
 
-      // Update job statistics
-      results.forEach((result, index) => {
-        job.processed++;
-        if (result.status === 'fulfilled' && result.value) {
-          job.successful++;
-          this.emit('invitation:sent', { 
-            campaignId, 
-            creatorId: batch[index].id 
-          });
-        } else {
-          job.failed++;
-          this.emit('invitation:failed', { 
-            campaignId, 
-            creatorId: batch[index].id,
-            error: result.status === 'rejected' ? result.reason : 'Unknown error'
-          });
-        }
+      // Step 5: Store invitation records
+      await this.storeInvitationResults(rule.campaignId, newCreators, results);
+
+      this.emit('automationCompleted', {
+        ruleId,
+        campaignId: rule.campaignId,
+        results
       });
 
-      // Update campaign spending
-      await storage.updateCampaignSpent(campaignId, job.processed * 0.10); // $0.10 per invite
+      // Schedule next run if needed
+      if (rule.schedule.enabled && results.nextRunTime) {
+        this.scheduleNextRun(ruleId, results.nextRunTime);
+      }
 
     } catch (error) {
-      console.error('Campaign batch processing error:', error);
-      this.emit('campaign:error', { campaignId, error });
-    }
-  }
-
-  // Find creators matching campaign criteria
-  private async findTargetCreators(campaign: Campaign): Promise<Creator[]> {
-    try {
-      // Search TikTok API for matching creators
-      const searchResults = await tiktokApi.searchCreators({
-        category: campaign.targetCategories?.[0] || 'technology',
-        location: campaign.targetLocations?.[0],
-        minFollowers: campaign.targetFollowerMin || 10000,
-        maxFollowers: campaign.targetFollowerMax || 1000000,
-        limit: 50
+      this.emit('automationError', {
+        ruleId,
+        campaignId: rule.campaignId,
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
+      throw error;
+    } finally {
+      this.runningAutomations.delete(ruleId);
+    }
+  }
 
-      // Filter by additional criteria
-      const filteredCreators = [];
-      
-      for (const tiktokCreator of searchResults) {
-        // Check if already in database
-        let creator = await storage.getCreatorByTikTokId(tiktokCreator.user_id);
-        
-        if (!creator) {
-          // Add new creator to database
-          creator = await storage.createCreator({
-            tiktokId: tiktokCreator.user_id,
-            username: tiktokCreator.username,
-            displayName: tiktokCreator.display_name,
-            followerCount: tiktokCreator.follower_count,
-            bio: tiktokCreator.bio,
-            isVerified: tiktokCreator.is_verified,
-            categories: campaign.targetCategories || [],
-            location: campaign.targetLocations?.[0] || null
+  // Filter creators who haven't been contacted yet
+  private async filterNewCreators(
+    campaignId: string,
+    creators: any[]
+  ): Promise<any[]> {
+    const existingInvitations = await storage.getInvitationsByCampaign(campaignId);
+    const contactedCreatorIds = new Set(
+      existingInvitations.map(inv => inv.creatorId)
+    );
+
+    return creators.filter(creator => !contactedCreatorIds.has(creator.user_id));
+  }
+
+  // Store invitation results in database
+  private async storeInvitationResults(
+    campaignId: string,
+    creators: any[],
+    results: any
+  ): Promise<void> {
+    for (let i = 0; i < results.totalInvitesSent; i++) {
+      const creator = creators[i];
+      if (creator) {
+        try {
+          // First ensure creator exists in database
+          let dbCreator = await storage.getCreatorByTikTokId(creator.user_id);
+          if (!dbCreator) {
+            dbCreator = await storage.createCreator({
+              tiktokId: creator.user_id,
+              username: creator.username,
+              displayName: creator.display_name,
+              followerCount: creator.follower_count,
+              bio: creator.bio,
+              isVerified: creator.is_verified,
+              categories: creator.categories || []
+            });
+          }
+
+          // Create invitation record
+          await storage.createInvitation({
+            campaignId,
+            creatorId: dbCreator.id,
+            message: '', // Will be filled with personalized message
+            status: i < results.successfulInvites ? 'sent' : 'failed',
+            sentAt: new Date(),
+            automationRuleId: campaignId // Link to automation rule
           });
+        } catch (error) {
+          console.error('Error storing invitation result:', error);
         }
-
-        // Check if already invited to this campaign
-        const existingInvite = await storage.getInvitation(campaign.id, creator.id);
-        if (existingInvite) continue;
-
-        // Check GMV threshold if specified
-        if (campaign.targetGmvMin) {
-          const gmv = await tiktokApi.getCreatorGMV(
-            creator.tiktokId,
-            new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), // Last 90 days
-            new Date()
-          );
-          
-          if (gmv < Number(campaign.targetGmvMin)) continue;
-        }
-
-        // Calculate engagement rate
-        const videos = await tiktokApi.getCreatorVideos(creator.tiktokId, 10);
-        const avgEngagement = videos.reduce((sum, v) => sum + v.engagement_rate, 0) / videos.length;
-        
-        if (campaign.targetEngagementMin && avgEngagement < Number(campaign.targetEngagementMin)) {
-          continue;
-        }
-
-        // Update creator metrics
-        await storage.updateCreatorMetrics(creator.id, {
-          engagementRate: avgEngagement.toString(),
-          avgViews: Math.round(videos.reduce((sum, v) => sum + v.view_count, 0) / videos.length)
-        });
-
-        filteredCreators.push(creator);
       }
-
-      return filteredCreators;
-    } catch (error) {
-      console.error('Error finding target creators:', error);
-      return [];
     }
   }
 
-  // Send personalized invitation to creator
-  private async sendInvitation(campaign: Campaign, creator: Creator): Promise<boolean> {
-    try {
-      // Personalize the message template
-      const personalizedMessage = this.personalizeMessage(campaign.messageTemplate, creator);
-      
-      // Send via TikTok API
-      const sent = await tiktokApi.sendInvitation(creator.tiktokId, personalizedMessage);
-      
-      if (sent) {
-        // Record invitation in database
-        await storage.createInvitation({
-          campaignId: campaign.id,
-          creatorId: creator.id,
-          status: 'sent',
-          sentAt: new Date()
-        });
-        
-        // Track analytics event
-        await storage.trackEvent({
-          eventType: 'invitation_sent',
-          campaignId: campaign.id,
-          creatorId: creator.id,
-          data: { message: personalizedMessage }
-        });
-        
-        return true;
-      }
-      
-      return false;
-    } catch (error) {
-      console.error('Error sending invitation:', error);
-      return false;
-    }
-  }
+  // Schedule automation to run at specific time
+  private scheduleAutomation(ruleId: string): void {
+    const rule = this.automationRules.get(ruleId);
+    if (!rule || !rule.schedule.enabled) return;
 
-  // Personalize message template with creator data
-  private personalizeMessage(template: string, creator: Creator): string {
-    return template
-      .replace('{creator_name}', creator.displayName || creator.username)
-      .replace('{follower_count}', creator.followerCount.toLocaleString())
-      .replace('{engagement_rate}', creator.engagementRate ? `${creator.engagementRate}%` : 'high')
-      .replace('{categories}', creator.categories?.join(', ') || 'your content');
-  }
+    const [hour, minute] = rule.schedule.time.split(':').map(Number);
+    const cronExpression = `${minute} ${hour} * * *`; // Daily at specified time
 
-  // Pause campaign execution
-  async pauseCampaign(campaignId: number): Promise<void> {
-    const job = this.activeJobs.get(campaignId);
-    if (!job) throw new Error('Campaign job not found');
-    
-    job.status = 'paused';
-    
-    // Clear the interval
-    const interval = this.jobIntervals.get(campaignId);
-    if (interval) {
-      clearInterval(interval);
-      this.jobIntervals.delete(campaignId);
-    }
-    
-    await storage.updateCampaignStatus(campaignId, 'paused');
-    this.emit('campaign:paused', { campaignId });
-  }
-
-  // Complete campaign
-  private async completeCampaign(campaignId: number): Promise<void> {
-    const job = this.activeJobs.get(campaignId);
-    if (!job) return;
-    
-    job.status = 'completed';
-    
-    // Clear the interval
-    const interval = this.jobIntervals.get(campaignId);
-    if (interval) {
-      clearInterval(interval);
-      this.jobIntervals.delete(campaignId);
-    }
-    
-    await storage.updateCampaignStatus(campaignId, 'completed');
-    
-    this.emit('campaign:completed', { 
-      campaignId,
-      stats: {
-        processed: job.processed,
-        successful: job.successful,
-        failed: job.failed,
-        duration: Date.now() - job.startedAt.getTime()
-      }
+    const job = cron.schedule(cronExpression, () => {
+      this.startAutomatedCampaign(ruleId).catch(error => {
+        console.error(`Scheduled automation failed for rule ${ruleId}:`, error);
+      });
+    }, {
+      scheduled: false,
+      timezone: rule.schedule.timezone
     });
-    
-    this.activeJobs.delete(campaignId);
+
+    job.start();
+    this.scheduledJobs.set(ruleId, job);
   }
 
-  // Get campaign job status
-  getJobStatus(campaignId: number): CampaignJob | undefined {
-    return this.activeJobs.get(campaignId);
-  }
-
-  // Handle incoming webhooks from TikTok
-  async handleWebhook(eventType: string, data: any): Promise<void> {
-    switch (eventType) {
-      case 'message.viewed':
-        await this.handleMessageViewed(data);
-        break;
-      case 'message.replied':
-        await this.handleMessageReplied(data);
-        break;
-      case 'creator.profile_updated':
-        await this.handleCreatorUpdate(data);
-        break;
-    }
-  }
-
-  private async handleMessageViewed(data: any): Promise<void> {
-    const invitation = await storage.getInvitationByTikTokId(data.message_id);
-    if (invitation) {
-      await storage.updateInvitationStatus(invitation.id, 'viewed', { viewedAt: new Date() });
-      this.emit('invitation:viewed', { invitationId: invitation.id });
-    }
-  }
-
-  private async handleMessageReplied(data: any): Promise<void> {
-    const invitation = await storage.getInvitationByTikTokId(data.message_id);
-    if (invitation) {
-      await storage.updateInvitationStatus(invitation.id, 'responded', {
-        respondedAt: new Date(),
-        response: data.reply_text
+  // Schedule next run for rate-limited automations
+  private scheduleNextRun(ruleId: string, nextRunTime: Date): void {
+    setTimeout(() => {
+      this.startAutomatedCampaign(ruleId).catch(error => {
+        console.error(`Delayed automation failed for rule ${ruleId}:`, error);
       });
-      
-      // Analyze response sentiment (you would integrate with AI here)
-      const isPositive = data.reply_text.toLowerCase().includes('interested') || 
-                        data.reply_text.toLowerCase().includes('yes');
-      
-      if (isPositive) {
-        this.emit('invitation:accepted', { invitationId: invitation.id });
-      } else {
-        this.emit('invitation:declined', { invitationId: invitation.id });
+    }, nextRunTime.getTime() - Date.now());
+  }
+
+  // Check for scheduled automations
+  private async checkScheduledAutomations(): Promise<void> {
+    for (const [ruleId, rule] of this.automationRules) {
+      if (rule.isActive && rule.schedule.enabled && !this.runningAutomations.has(ruleId)) {
+        const now = new Date();
+        const [hour, minute] = rule.schedule.time.split(':').map(Number);
+        
+        if (now.getHours() === hour && now.getMinutes() === minute) {
+          this.startAutomatedCampaign(ruleId).catch(error => {
+            console.error(`Scheduled automation failed for rule ${ruleId}:`, error);
+          });
+        }
       }
     }
   }
 
-  private async handleCreatorUpdate(data: any): Promise<void> {
-    const creator = await storage.getCreatorByTikTokId(data.user_id);
-    if (creator) {
-      await storage.updateCreatorProfile(creator.id, data.updated_fields);
-      this.emit('creator:updated', { creatorId: creator.id });
+  // Daily cleanup and reporting
+  private async dailyCleanup(): Promise<void> {
+    // Clean up old logs, send daily reports, etc.
+    this.emit('dailyReport', await this.getAutomationStats());
+  }
+
+  // Get automation statistics
+  async getAutomationStats(): Promise<AutomationStats> {
+    const allInvitations = await storage.getAllInvitations();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const todayInvites = allInvitations.filter(inv => 
+      inv.sentAt && inv.sentAt >= today
+    ).length;
+
+    const totalSent = allInvitations.length;
+    const responded = allInvitations.filter(inv => 
+      inv.status === 'accepted' || inv.status === 'rejected'
+    ).length;
+    const accepted = allInvitations.filter(inv => inv.status === 'accepted').length;
+    const pending = allInvitations.filter(inv => inv.status === 'sent').length;
+
+    return {
+      totalInvitesSent: totalSent,
+      responseRate: totalSent > 0 ? (responded / totalSent) * 100 : 0,
+      acceptanceRate: responded > 0 ? (accepted / responded) * 100 : 0,
+      campaignsActive: this.runningAutomations.size,
+      todayInvites,
+      pendingResponses: pending
+    };
+  }
+
+  // Stop automation rule
+  stopAutomationRule(ruleId: string): void {
+    const rule = this.automationRules.get(ruleId);
+    if (rule) {
+      rule.isActive = false;
+      
+      // Stop scheduled job if exists
+      const job = this.scheduledJobs.get(ruleId);
+      if (job) {
+        job.stop();
+        this.scheduledJobs.delete(ruleId);
+      }
+
+      this.emit('automationStopped', { ruleId, campaignId: rule.campaignId });
+    }
+  }
+
+  // Get all automation rules
+  getAutomationRules(): AutomationRule[] {
+    return Array.from(this.automationRules.values());
+  }
+
+  // Get automation rule by ID
+  getAutomationRule(ruleId: string): AutomationRule | undefined {
+    return this.automationRules.get(ruleId);
+  }
+
+  // Update automation rule
+  updateAutomationRule(ruleId: string, updates: Partial<AutomationRule>): void {
+    const rule = this.automationRules.get(ruleId);
+    if (rule) {
+      Object.assign(rule, updates);
+      
+      // Reschedule if schedule changed
+      if (updates.schedule) {
+        const job = this.scheduledJobs.get(ruleId);
+        if (job) {
+          job.stop();
+          this.scheduledJobs.delete(ruleId);
+        }
+        
+        if (rule.schedule.enabled) {
+          this.scheduleAutomation(ruleId);
+        }
+      }
     }
   }
 }
 
-export const campaignEngine = new CampaignAutomationEngine();
+export const campaignAutomation = new CampaignAutomationService();

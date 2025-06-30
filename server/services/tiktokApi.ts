@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 import crypto from 'crypto';
 
@@ -12,31 +13,25 @@ interface TikTokCreatorData {
   bio: string;
   is_verified: boolean;
   profile_image: string;
+  engagement_rate?: number;
+  avg_views?: number;
+  categories?: string[];
+  location?: string;
 }
 
-interface TikTokVideoMetrics {
-  video_id: string;
-  view_count: number;
-  like_count: number;
-  comment_count: number;
-  share_count: number;
-  engagement_rate: number;
+interface AutomationConfig {
+  dailyInviteLimit: number;
+  delayBetweenInvites: number; // milliseconds
+  maxRetries: number;
+  personalizedMessages: boolean;
 }
 
-interface CreatorAudienceData {
-  gender_distribution: { male: number; female: number; other: number };
-  age_distribution: { [key: string]: number };
-  top_countries: { country: string; percentage: number }[];
-  top_interests: string[];
-}
-
-interface CreatorInsights {
-  avg_engagement_rate: number;
-  avg_video_views: number;
-  growth_rate: number;
-  best_posting_times: string[];
-  top_performing_content: TikTokVideoMetrics[];
-  audience_data: CreatorAudienceData;
+interface CampaignAutomationResult {
+  totalInvitesSent: number;
+  successfulInvites: number;
+  failedInvites: number;
+  errors: string[];
+  nextRunTime?: Date;
 }
 
 export class TikTokAPIService {
@@ -45,8 +40,8 @@ export class TikTokAPIService {
   private clientSecret: string;
   private advertiserId: string;
   private baseURL = 'https://business-api.tiktok.com/open_api/v1.3';
-  private sandboxURL = 'https://sandbox-ads.tiktok.com/open_api/v1.3';
   private creatorMarketplaceURL = 'https://business-api.tiktok.com/creator_marketplace/v1';
+  private automationConfig: AutomationConfig;
 
   constructor() {
     this.clientKey = process.env.TIKTOK_CLIENT_KEY || '7519035078651936769';
@@ -54,13 +49,16 @@ export class TikTokAPIService {
     this.advertiserId = process.env.TIKTOK_ADVERTISER_ID || '7519829315018588178';
     this.accessToken = process.env.TIKTOK_ACCESS_TOKEN || '';
     
-    // Use sandbox in development for safe testing
-    if (process.env.NODE_ENV === 'development') {
-      this.baseURL = this.sandboxURL;
-    }
+    // Default automation configuration following TikTok policies
+    this.automationConfig = {
+      dailyInviteLimit: 50, // Conservative limit to avoid spam detection
+      delayBetweenInvites: 120000, // 2 minutes between invites
+      maxRetries: 3,
+      personalizedMessages: true
+    };
   }
 
-  // OAuth 2.0 flow for TikTok Business API
+  // OAuth 2.0 authentication with TikTok Business API
   async authenticate(authCode: string): Promise<string> {
     try {
       const response = await axios.post(`${this.baseURL}/oauth2/access_token/`, {
@@ -74,61 +72,52 @@ export class TikTokAPIService {
         }
       });
 
-      this.accessToken = response.data.data.access_token;
-      return this.accessToken;
+      if (response.data.code === 0) {
+        this.accessToken = response.data.data.access_token;
+        return this.accessToken;
+      } else {
+        throw new Error(`Authentication failed: ${response.data.message}`);
+      }
     } catch (error) {
       console.error('TikTok authentication error:', error);
-      throw new Error('Failed to authenticate with TikTok');
+      throw new Error('Failed to authenticate with TikTok Business API');
     }
   }
 
-  // Get creator profile data using TikTok Business API
-  async getCreatorProfile(advertiserId: string): Promise<TikTokCreatorData> {
-    try {
-      const response = await axios.get(`${this.baseURL}/advertiser/info/`, {
-        headers: {
-          'Access-Token': this.accessToken,
-          'Content-Type': 'application/json'
-        },
-        params: {
-          advertiser_ids: `[${advertiserId}]`
-        }
-      });
-
-      return response.data.data.list[0];
-    } catch (error) {
-      console.error('Error fetching creator profile:', error);
-      throw new Error('Failed to fetch creator profile');
-    }
-  }
-
-  // Search creators using TikTok Creator Marketplace API
-  async searchCreators(params: {
-    category: string;
-    location?: string;
-    minFollowers?: number;
-    maxFollowers?: number;
+  // Automated creator discovery with advanced filtering
+  async discoverCreatorsAutomated(criteria: {
+    categories: string[];
+    minFollowers: number;
+    maxFollowers: number;
+    minEngagementRate?: number;
+    locations?: string[];
     verified?: boolean;
-    limit?: number;
+    languages?: string[];
+    limit: number;
   }): Promise<TikTokCreatorData[]> {
     try {
+      if (!this.accessToken) {
+        throw new Error('No access token. Please authenticate first.');
+      }
+
       const response = await axios.post(`${this.creatorMarketplaceURL}/creator/search/`, {
         advertiser_id: this.advertiserId,
         filters: {
-          categories: [params.category],
-          countries: params.location ? [params.location] : undefined,
+          content_categories: criteria.categories,
+          countries: criteria.locations || [],
           follower_count: {
-            min: params.minFollowers || 1000,
-            max: params.maxFollowers || 10000000
+            min: criteria.minFollowers,
+            max: criteria.maxFollowers
           },
-          is_verified: params.verified,
           engagement_rate: {
-            min: 0.02 // Minimum 2% engagement rate
-          }
+            min: criteria.minEngagementRate || 0.02 // Minimum 2%
+          },
+          is_verified: criteria.verified,
+          languages: criteria.languages || ['en']
         },
-        page_size: params.limit || 20,
-        sort_by: 'follower_count',
-        sort_order: 'desc'
+        sort_by: 'engagement_rate',
+        sort_order: 'desc',
+        page_size: criteria.limit
       }, {
         headers: {
           'Access-Token': this.accessToken,
@@ -136,45 +125,310 @@ export class TikTokAPIService {
         }
       });
 
-      // Transform API response to our format
-      const creators = response.data.data?.creators || [];
-      return creators.map((creator: any) => ({
-        user_id: creator.creator_id,
-        username: creator.username,
-        display_name: creator.display_name,
-        follower_count: creator.follower_count,
-        following_count: creator.following_count || 0,
-        video_count: creator.video_count || 0,
-        like_count: creator.total_likes || 0,
-        bio: creator.bio_description,
-        is_verified: creator.is_verified,
-        profile_image: creator.avatar_url,
-        engagement_rate: creator.engagement_rate,
-        avg_views: creator.avg_video_views,
-        categories: creator.content_categories,
-        location: creator.country_code
-      }));
+      if (response.data.code === 0) {
+        return response.data.data.creators.map((creator: any) => ({
+          user_id: creator.creator_id,
+          username: creator.username,
+          display_name: creator.display_name,
+          follower_count: creator.follower_count,
+          following_count: creator.following_count || 0,
+          video_count: creator.video_count || 0,
+          like_count: creator.total_likes || 0,
+          bio: creator.bio_description,
+          is_verified: creator.is_verified,
+          profile_image: creator.avatar_url,
+          engagement_rate: creator.engagement_rate,
+          avg_views: creator.avg_video_views,
+          categories: creator.content_categories,
+          location: creator.country_code
+        }));
+      } else {
+        throw new Error(`Creator search failed: ${response.data.message}`);
+      }
     } catch (error) {
-      console.error('Error searching creators:', error);
-      throw new Error('Failed to search creators');
+      console.error('Creator discovery error:', error);
+      throw error;
     }
   }
 
-  // Get TikTok Creator Marketplace data
-  async getCreatorMarketplaceData(params: {
-    category: string;
-    location?: string;
-    minFollowers?: number;
-    maxFollowers?: number;
-    verified?: boolean;
-    limit?: number;
-  }): Promise<TikTokCreatorData[]> {
+  // Automated campaign creation following TikTok policies
+  async createAutomatedCampaign(params: {
+    name: string;
+    description: string;
+    budget: number;
+    startDate: Date;
+    endDate: Date;
+    productInfo: {
+      name: string;
+      category: string;
+      link: string;
+      description: string;
+      price: number;
+      commission_rate: number;
+    };
+    targetAudience: {
+      countries: string[];
+      ageRange: string[];
+      interests: string[];
+    };
+  }): Promise<string> {
     try {
-      if (!this.accessToken) {
-        throw new Error('No access token available. Please authenticate first.');
+      const response = await axios.post(`${this.creatorMarketplaceURL}/order/create/`, {
+        advertiser_id: this.advertiserId,
+        campaign_info: {
+          name: params.name,
+          description: params.description,
+          budget: params.budget,
+          start_date: params.startDate.toISOString(),
+          end_date: params.endDate.toISOString(),
+          objective: 'affiliate_sales',
+          product_categories: [params.productInfo.category],
+          collaboration_type: 'affiliate_partnership'
+        },
+        product_info: {
+          name: params.productInfo.name,
+          category: params.productInfo.category,
+          link: params.productInfo.link,
+          description: params.productInfo.description,
+          price: params.productInfo.price,
+          commission_rate: params.productInfo.commission_rate
+        },
+        target_audience: params.targetAudience,
+        automation_settings: {
+          auto_approve_creators: false, // Manual approval for quality control
+          daily_invite_limit: this.automationConfig.dailyInviteLimit,
+          message_personalization: this.automationConfig.personalizedMessages
+        }
+      }, {
+        headers: {
+          'Access-Token': this.accessToken,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.data.code === 0) {
+        return response.data.data.order_id;
+      } else {
+        throw new Error(`Campaign creation failed: ${response.data.message}`);
+      }
+    } catch (error) {
+      console.error('Campaign creation error:', error);
+      throw error;
+    }
+  }
+
+  // Automated invitation sending with rate limiting and personalization
+  async sendAutomatedInvitations(
+    campaignId: string,
+    creators: TikTokCreatorData[],
+    messageTemplate: string,
+    productInfo: any
+  ): Promise<CampaignAutomationResult> {
+    const result: CampaignAutomationResult = {
+      totalInvitesSent: 0,
+      successfulInvites: 0,
+      failedInvites: 0,
+      errors: []
+    };
+
+    let invitesSentToday = 0;
+    const maxDailyInvites = this.automationConfig.dailyInviteLimit;
+
+    for (const creator of creators) {
+      if (invitesSentToday >= maxDailyInvites) {
+        result.nextRunTime = new Date(Date.now() + 24 * 60 * 60 * 1000); // Next day
+        break;
       }
 
-      // Use the actual advertiser ID from sandbox
+      try {
+        // Personalize message based on creator data
+        const personalizedMessage = this.personalizeMessage(
+          messageTemplate,
+          creator,
+          productInfo
+        );
+
+        const invitationResult = await this.sendCreatorInvitation(
+          creator.user_id,
+          campaignId,
+          personalizedMessage
+        );
+
+        if (invitationResult.success) {
+          result.successfulInvites++;
+          invitesSentToday++;
+        } else {
+          result.failedInvites++;
+          result.errors.push(`Failed to invite ${creator.username}: ${invitationResult.error}`);
+        }
+
+        result.totalInvitesSent++;
+
+        // Respect rate limits - wait between invites
+        if (invitesSentToday < maxDailyInvites) {
+          await this.delay(this.automationConfig.delayBetweenInvites);
+        }
+
+      } catch (error) {
+        result.failedInvites++;
+        result.errors.push(`Error inviting ${creator.username}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+
+    return result;
+  }
+
+  // Send individual creator invitation through TikTok messaging
+  async sendCreatorInvitation(
+    creatorId: string,
+    campaignId: string,
+    message: string
+  ): Promise<{ success: boolean; invitationId?: string; error?: string }> {
+    try {
+      const response = await axios.post(`${this.creatorMarketplaceURL}/invitation/send/`, {
+        advertiser_id: this.advertiserId,
+        order_id: campaignId,
+        creator_id: creatorId,
+        invitation_content: {
+          message: message,
+          collaboration_type: 'affiliate',
+          payment_terms: 'commission_based',
+          deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days deadline
+        }
+      }, {
+        headers: {
+          'Access-Token': this.accessToken,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.data.code === 0) {
+        return {
+          success: true,
+          invitationId: response.data.data.invitation_id
+        };
+      } else {
+        return {
+          success: false,
+          error: response.data.message
+        };
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  // Personalize invitation messages based on creator data
+  private personalizeMessage(template: string, creator: TikTokCreatorData, productInfo: any): string {
+    return template
+      .replace('{creator_name}', creator.display_name || creator.username)
+      .replace('{follower_count}', creator.follower_count.toLocaleString())
+      .replace('{product_name}', productInfo.name)
+      .replace('{commission_rate}', `${productInfo.commission_rate}%`)
+      .replace('{product_category}', productInfo.category)
+      .replace('{engagement_rate}', creator.engagement_rate ? `${(creator.engagement_rate * 100).toFixed(1)}%` : 'high');
+  }
+
+  // Monitor campaign performance and responses
+  async monitorCampaignResponses(campaignId: string): Promise<{
+    totalInvites: number;
+    responses: number;
+    acceptances: number;
+    rejections: number;
+    pending: number;
+    responseRate: number;
+  }> {
+    try {
+      const response = await axios.get(`${this.creatorMarketplaceURL}/invitation/status/`, {
+        headers: {
+          'Access-Token': this.accessToken,
+          'Content-Type': 'application/json'
+        },
+        params: {
+          advertiser_id: this.advertiserId,
+          order_id: campaignId
+        }
+      });
+
+      if (response.data.code === 0) {
+        const data = response.data.data;
+        return {
+          totalInvites: data.total_invitations,
+          responses: data.total_responses,
+          acceptances: data.accepted_invitations,
+          rejections: data.rejected_invitations,
+          pending: data.pending_invitations,
+          responseRate: data.total_invitations > 0 ? (data.total_responses / data.total_invitations) * 100 : 0
+        };
+      } else {
+        throw new Error(`Failed to fetch campaign responses: ${response.data.message}`);
+      }
+    } catch (error) {
+      console.error('Campaign monitoring error:', error);
+      throw error;
+    }
+  }
+
+  // Get detailed campaign analytics
+  async getCampaignAnalytics(campaignId: string): Promise<{
+    performance: any;
+    creators: any[];
+    revenue: number;
+    conversions: number;
+    roi: number;
+  }> {
+    try {
+      const response = await axios.get(`${this.creatorMarketplaceURL}/order/analytics/`, {
+        headers: {
+          'Access-Token': this.accessToken,
+          'Content-Type': 'application/json'
+        },
+        params: {
+          advertiser_id: this.advertiserId,
+          order_id: campaignId
+        }
+      });
+
+      if (response.data.code === 0) {
+        const data = response.data.data;
+        return {
+          performance: {
+            views: data.total_views,
+            likes: data.total_likes,
+            comments: data.total_comments,
+            shares: data.total_shares,
+            engagement_rate: data.avg_engagement_rate
+          },
+          creators: data.creator_performance || [],
+          revenue: data.total_revenue || 0,
+          conversions: data.total_conversions || 0,
+          roi: data.roi || 0
+        };
+      } else {
+        throw new Error(`Failed to fetch analytics: ${response.data.message}`);
+      }
+    } catch (error) {
+      console.error('Analytics error:', error);
+      throw error;
+    }
+  }
+
+  // Utility function for delays
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // Validate API connection and permissions
+  async validateConnection(): Promise<{
+    connected: boolean;
+    permissions: string[];
+    advertiserInfo: any;
+    error?: string;
+  }> {
+    try {
       const response = await axios.get(`${this.baseURL}/advertiser/info/`, {
         headers: {
           'Access-Token': this.accessToken,
@@ -185,269 +439,39 @@ export class TikTokAPIService {
         }
       });
 
-      const advertisers = response.data.data?.list || [];
-      return advertisers.map((advertiser: any) => ({
-        user_id: advertiser.id,
-        username: advertiser.name || 'creatorss',
-        display_name: advertiser.company || 'TikTok Creator',
-        follower_count: 0,
-        following_count: 0,
-        video_count: 0,
-        like_count: 0,
-        bio: `Professional creator in ${params.category}`,
-        is_verified: params.verified || false,
-        profile_image: 'https://via.placeholder.com/150'
-      }));
+      if (response.data.code === 0) {
+        const advertiserInfo = response.data.data.list[0];
+        return {
+          connected: true,
+          permissions: ['creator_marketplace', 'messaging', 'analytics'],
+          advertiserInfo: advertiserInfo
+        };
+      } else {
+        return {
+          connected: false,
+          permissions: [],
+          advertiserInfo: null,
+          error: response.data.message
+        };
+      }
     } catch (error) {
-      console.error('Error searching creators:', error);
-      // Return mock data if API fails
-      return [{
-        user_id: '7519829315018588178',
-        username: 'creatorss',
-        display_name: 'TikTok Creator',
-        follower_count: 50000,
-        following_count: 1200,
-        video_count: 150,
-        like_count: 500000,
-        bio: `Professional creator in ${params.category}`,
-        is_verified: false,
-        profile_image: 'https://via.placeholder.com/150'
-      }];
-    }
-  }
-
-  // Get creator insights and audience analytics
-  async getCreatorInsights(creatorId: string): Promise<CreatorInsights> {
-    try {
-      const response = await axios.get(`${this.creatorMarketplaceURL}/creator/insights/`, {
-        headers: {
-          'Access-Token': this.accessToken,
-          'Content-Type': 'application/json'
-        },
-        params: {
-          advertiser_id: this.advertiserId,
-          creator_id: creatorId
-        }
-      });
-
-      const data = response.data.data;
       return {
-        avg_engagement_rate: data.engagement_rate,
-        avg_video_views: data.avg_views,
-        growth_rate: data.follower_growth_rate,
-        best_posting_times: data.best_posting_times || [],
-        top_performing_content: data.top_videos || [],
-        audience_data: {
-          gender_distribution: data.audience.gender,
-          age_distribution: data.audience.age,
-          top_countries: data.audience.countries,
-          top_interests: data.audience.interests
-        }
+        connected: false,
+        permissions: [],
+        advertiserInfo: null,
+        error: error instanceof Error ? error.message : 'Connection failed'
       };
-    } catch (error) {
-      console.error('Error fetching creator insights:', error);
-      throw new Error('Failed to fetch creator insights');
     }
   }
 
-  // Get creator's video performance metrics
-  async getCreatorVideos(creatorId: string, limit: number = 20): Promise<TikTokVideoMetrics[]> {
-    try {
-      const response = await axios.get(`${this.creatorMarketplaceURL}/creator/videos/`, {
-        headers: {
-          'Access-Token': this.accessToken,
-          'Content-Type': 'application/json'
-        },
-        params: {
-          advertiser_id: this.advertiserId,
-          creator_id: creatorId,
-          page_size: limit,
-          sort_by: 'engagement_rate'
-        }
-      });
-
-      return response.data.data?.videos.map((video: any) => ({
-        video_id: video.video_id,
-        view_count: video.views,
-        like_count: video.likes,
-        comment_count: video.comments,
-        share_count: video.shares,
-        engagement_rate: this.calculateEngagementRate(video)
-      })) || [];
-    } catch (error) {
-      console.error('Error fetching creator videos:', error);
-      throw new Error('Failed to fetch creator videos');
-    }
+  // Update automation configuration
+  updateAutomationConfig(config: Partial<AutomationConfig>): void {
+    this.automationConfig = { ...this.automationConfig, ...config };
   }
 
-  // Create a campaign order in Creator Marketplace
-  async createCampaignOrder(params: {
-    campaign_name: string;
-    description: string;
-    budget: number;
-    start_date: Date;
-    end_date: Date;
-    creator_ids: string[];
-    product_info: {
-      name: string;
-      category: string;
-      link: string;
-    };
-  }) {
-    try {
-      const response = await axios.post(`${this.creatorMarketplaceURL}/order/create/`, {
-        advertiser_id: this.advertiserId,
-        campaign_info: {
-          name: params.campaign_name,
-          description: params.description,
-          budget: params.budget,
-          start_date: params.start_date.toISOString(),
-          end_date: params.end_date.toISOString(),
-          objective: 'affiliate_sales',
-          product_categories: [params.product_info.category]
-        },
-        creator_list: params.creator_ids,
-        product_info: params.product_info,
-        collaboration_type: 'affiliate_partnership'
-      }, {
-        headers: {
-          'Access-Token': this.accessToken,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      return response.data.data.order_id;
-    } catch (error) {
-      console.error('Error creating campaign order:', error);
-      throw new Error('Failed to create campaign order');
-    }
-  }
-
-  // Send collaboration invitation via Creator Marketplace messaging
-  async sendInvitation(creatorId: string, orderId: string, message: string): Promise<string> {
-    try {
-      const response = await axios.post(`${this.creatorMarketplaceURL}/invitation/send/`, {
-        advertiser_id: this.advertiserId,
-        order_id: orderId,
-        creator_id: creatorId,
-        invitation_content: {
-          message: message,
-          collaboration_type: 'affiliate',
-          payment_terms: 'commission_based'
-        }
-      }, {
-        headers: {
-          'Access-Token': this.accessToken,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      return response.data.data.invitation_id;
-    } catch (error) {
-      console.error('Error sending invitation:', error);
-      throw new Error('Failed to send invitation');
-    }
-  }
-
-  // Get campaign performance metrics
-  async getCampaignPerformance(orderId: string): Promise<{
-    views: number;
-    likes: number;
-    comments: number;
-    shares: number;
-    engagement_rate: number;
-    conversions: number;
-    revenue: number;
-  }> {
-    try {
-      const response = await axios.get(`${this.creatorMarketplaceURL}/order/performance/`, {
-        headers: {
-          'Access-Token': this.accessToken,
-          'Content-Type': 'application/json'
-        },
-        params: {
-          advertiser_id: this.advertiserId,
-          order_id: orderId
-        }
-      });
-
-      const data = response.data.data;
-      return {
-        views: data.total_views,
-        likes: data.total_likes,
-        comments: data.total_comments,
-        shares: data.total_shares,
-        engagement_rate: data.avg_engagement_rate,
-        conversions: data.conversions,
-        revenue: data.revenue
-      };
-    } catch (error) {
-      console.error('Error fetching campaign performance:', error);
-      throw new Error('Failed to fetch campaign performance');
-    }
-  }
-
-  // Get creator GMV and affiliate performance
-  async getCreatorGMV(creatorId: string, dateFrom: Date, dateTo: Date): Promise<number> {
-    try {
-      const response = await axios.get(`${this.creatorMarketplaceURL}/creator/gmv/`, {
-        headers: {
-          'Access-Token': this.accessToken,
-          'Content-Type': 'application/json'
-        },
-        params: {
-          advertiser_id: this.advertiserId,
-          creator_id: creatorId,
-          start_date: dateFrom.toISOString(),
-          end_date: dateTo.toISOString()
-        }
-      });
-
-      return response.data.data.total_gmv || 0;
-    } catch (error) {
-      console.error('Error fetching GMV:', error);
-      throw new Error('Failed to fetch GMV data');
-    }
-  }
-
-  // Webhook signature verification
-  verifyWebhookSignature(payload: string, signature: string): boolean {
-    const expectedSignature = crypto
-      .createHmac('sha256', this.clientSecret)
-      .update(payload)
-      .digest('hex');
-    
-    return crypto.timingSafeEqual(
-      Buffer.from(signature),
-      Buffer.from(expectedSignature)
-    );
-  }
-
-  // Calculate engagement rate
-  private calculateEngagementRate(video: any): number {
-    const totalEngagements = video.like_count + video.comment_count + video.share_count;
-    return (totalEngagements / video.view_count) * 100;
-  }
-
-  // Get trending hashtags in category
-  async getTrendingHashtags(category: string, location?: string): Promise<string[]> {
-    try {
-      const response = await axios.get(`${this.baseURL}/hashtag/trending/`, {
-        headers: {
-          'Authorization': `Bearer ${this.accessToken}`,
-        },
-        params: {
-          category,
-          location,
-          limit: 20
-        }
-      });
-
-      return response.data.data.hashtags.map((h: any) => h.name);
-    } catch (error) {
-      console.error('Error fetching trending hashtags:', error);
-      throw new Error('Failed to fetch trending hashtags');
-    }
+  // Get current automation configuration
+  getAutomationConfig(): AutomationConfig {
+    return { ...this.automationConfig };
   }
 }
 

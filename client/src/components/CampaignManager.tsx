@@ -1,452 +1,334 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Campaign } from '@shared/schema';
+import { Play, Pause, Settings, BarChart3, Users, MessageCircle } from 'lucide-react';
 
-interface Campaign {
-  id: number;
-  name: string;
-  status: 'active' | 'paused' | 'completed';
-  budget: number;
-  spent: number;
-  targetInvites: number;
-  sentInvites: number;
-  responses: number;
-  collaborations: number;
-  revenue: number;
-  startDate: string;
-  endDate: string;
-  categories: string[];
-  followerRange: { min: number; max: number };
-  description: string;
+interface AutomationRule {
+  id: string;
+  campaignId: string;
+  isActive: boolean;
+  dailyInviteLimit: number;
+  delayBetweenInvites: number;
+  creatorCriteria: {
+    categories: string[];
+    minFollowers: number;
+    maxFollowers: number;
+    minEngagementRate: number;
+    locations: string[];
+    verified?: boolean;
+  };
+  messageTemplate: string;
+  schedule: {
+    enabled: boolean;
+    time: string;
+    timezone: string;
+  };
 }
 
-interface NewCampaign {
-  name: string;
-  budget: number;
-  targetInvites: number;
-  startDate: string;
-  endDate: string;
-  categories: string[];
-  followerMin: number;
-  followerMax: number;
-  description: string;
-  gmvThreshold: number;
+interface AutomationStats {
+  totalInvitesSent: number;
+  responseRate: number;
+  acceptanceRate: number;
+  campaignsActive: number;
+  todayInvites: number;
+  pendingResponses: number;
 }
-import { 
-  Plus, 
-  Play, 
-  Pause, 
-  Edit, 
-  Trash2, 
-  Users, 
-  Target, 
-  Calendar,
-  DollarSign,
-  TrendingUp,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  Settings as SettingsIcon,
-  X
-} from 'lucide-react';
 
-const CampaignManager: React.FC = () => {
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [campaigns, setCampaigns] = useState<Campaign[]>([
-    {
-      id: 1,
-      name: 'Mobile Repair Accessories Q1',
-      status: 'active',
-      budget: 5000,
-      spent: 2340,
-      targetInvites: 200,
-      sentInvites: 147,
-      responses: 34,
-      collaborations: 12,
-      revenue: 8450,
-      startDate: '2025-01-01',
-      endDate: '2025-03-31',
-      categories: ['Technology', 'DIY & Repair'],
-      followerRange: { min: 10000, max: 500000 },
-      description: 'Targeting tech reviewers and DIY repair creators for mobile accessories promotion'
-    },
-    {
-      id: 2,
-      name: 'Gaming Accessories Winter',
-      status: 'paused',
-      budget: 3000,
-      spent: 1200,
-      targetInvites: 150,
-      sentInvites: 89,
-      responses: 18,
-      collaborations: 7,
-      revenue: 4200,
-      startDate: '2024-12-01',
-      endDate: '2025-02-28',
-      categories: ['Gaming', 'Technology'],
-      followerRange: { min: 25000, max: 300000 },
-      description: 'Focus on gaming creators for mobile gaming accessories'
-    },
-    {
-      id: 3,
-      name: 'Screen Protection Campaign',
-      status: 'completed',
-      budget: 2500,
-      spent: 2500,
-      targetInvites: 100,
-      sentInvites: 100,
-      responses: 28,
-      collaborations: 15,
-      revenue: 6800,
-      startDate: '2024-10-01',
-      endDate: '2024-12-31',
-      categories: ['Technology', 'Lifestyle'],
-      followerRange: { min: 15000, max: 200000 },
-      description: 'Promoting screen protectors and phone cases'
+export default function CampaignManager() {
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [automationRules, setAutomationRules] = useState<AutomationRule[]>([]);
+  const [automationStats, setAutomationStats] = useState<AutomationStats | null>(null);
+  const [showAutomationForm, setShowAutomationForm] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<any>(null);
+
+  // Load automation data
+  useEffect(() => {
+    if (selectedCampaign) {
+      fetchAutomationRules(selectedCampaign.id);
     }
-  ]);
+    fetchAutomationStats();
+    checkTikTokConnection();
+  }, [selectedCampaign]);
 
-  const [newCampaign, setNewCampaign] = useState<NewCampaign>({
-    name: '',
-    budget: 0,
-    targetInvites: 0,
-    startDate: '',
-    endDate: '',
-    categories: [],
-    followerMin: 10000,
-    followerMax: 500000,
-    description: '',
-    gmvThreshold: 1000
-  });
-
-  const toggleCampaignStatus = (campaignId: number) => {
-    setCampaigns(campaigns.map(campaign => 
-      campaign.id === campaignId 
-        ? { ...campaign, status: campaign.status === 'active' ? 'paused' : 'active' }
-        : campaign
-    ));
-  };
-
-  const createCampaign = () => {
-    const campaign = {
-      id: campaigns.length + 1,
-      name: newCampaign.name,
-      status: 'active' as const,
-      budget: newCampaign.budget,
-      spent: 0,
-      targetInvites: newCampaign.targetInvites,
-      sentInvites: 0,
-      responses: 0,
-      collaborations: 0,
-      revenue: 0,
-      startDate: newCampaign.startDate,
-      endDate: newCampaign.endDate,
-      categories: newCampaign.categories,
-      followerRange: { min: newCampaign.followerMin, max: newCampaign.followerMax },
-      description: newCampaign.description
-    };
-
-    setCampaigns([...campaigns, campaign]);
-    setShowCreateModal(false);
-    setNewCampaign({
-      name: '',
-      budget: 0,
-      targetInvites: 0,
-      startDate: '',
-      endDate: '',
-      categories: [],
-      followerMin: 10000,
-      followerMax: 500000,
-      description: '',
-      gmvThreshold: 1000
-    });
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'paused': return 'bg-yellow-100 text-yellow-800';
-      case 'completed': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
+  const fetchAutomationRules = async (campaignId: string) => {
+    try {
+      const response = await fetch(`/api/campaigns/${campaignId}/automation`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (response.ok) {
+        const rules = await response.json();
+        setAutomationRules(rules);
+      }
+    } catch (error) {
+      console.error('Failed to fetch automation rules:', error);
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'active': return <Play className="w-4 h-4" />;
-      case 'paused': return <Pause className="w-4 h-4" />;
-      case 'completed': return <CheckCircle className="w-4 h-4" />;
-      default: return <Clock className="w-4 h-4" />;
+  const fetchAutomationStats = async () => {
+    try {
+      const response = await fetch('/api/campaigns/automation/stats', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (response.ok) {
+        const stats = await response.json();
+        setAutomationStats(stats);
+      }
+    } catch (error) {
+      console.error('Failed to fetch automation stats:', error);
+    }
+  };
+
+  const checkTikTokConnection = async () => {
+    try {
+      const response = await fetch('/api/campaigns/test-connection', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (response.ok) {
+        const status = await response.json();
+        setConnectionStatus(status);
+      }
+    } catch (error) {
+      console.error('Failed to check TikTok connection:', error);
+    }
+  };
+
+  const startAutomation = async (ruleId: string) => {
+    try {
+      const response = await fetch(`/api/campaigns/${selectedCampaign?.id}/automation/${ruleId}/start`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+
+      if (response.ok) {
+        alert('Automation started successfully!');
+        fetchAutomationStats();
+      } else {
+        const error = await response.json();
+        alert(`Failed to start automation: ${error.message}`);
+      }
+    } catch (error) {
+      alert('Failed to start automation');
+    }
+  };
+
+  const stopAutomation = async (ruleId: string) => {
+    try {
+      const response = await fetch(`/api/campaigns/${selectedCampaign?.id}/automation/${ruleId}/stop`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+
+      if (response.ok) {
+        alert('Automation stopped successfully!');
+        fetchAutomationRules(selectedCampaign?.id || '');
+        fetchAutomationStats();
+      }
+    } catch (error) {
+      alert('Failed to stop automation');
+    }
+  };
+
+  const createAutomationRule = async (formData: any) => {
+    try {
+      const response = await fetch(`/api/campaigns/${selectedCampaign?.id}/automation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(formData)
+      });
+
+      if (response.ok) {
+        alert('Automation rule created successfully!');
+        setShowAutomationForm(false);
+        fetchAutomationRules(selectedCampaign?.id || '');
+      } else {
+        const error = await response.json();
+        alert(`Failed to create automation: ${error.message}`);
+      }
+    } catch (error) {
+      alert('Failed to create automation rule');
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Campaign Manager</h1>
-          <p className="text-gray-600">Create and manage your TikTok affiliate campaigns</p>
+        <h2 className="text-3xl font-bold">Campaign Manager</h2>
+        <div className="flex gap-2">
+          <Button onClick={() => setShowCreateForm(true)}>
+            Create Campaign
+          </Button>
+          {selectedCampaign && (
+            <Button onClick={() => setShowAutomationForm(true)} variant="outline">
+              <Settings className="h-4 w-4 mr-2" />
+              Setup Automation
+            </Button>
+          )}
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Create Campaign</span>
-        </button>
       </div>
 
-      {/* Campaign Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {campaigns.map((campaign) => (
-          <div key={campaign.id} className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-            <div className="flex justify-between items-start mb-4">
+      {/* TikTok Connection Status */}
+      {connectionStatus && (
+        <Card className={connectionStatus.connected ? "border-green-200" : "border-red-200"}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{campaign.name}</h3>
-                <div className={`inline-flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(campaign.status)}`}>
-                  {getStatusIcon(campaign.status)}
-                  <span className="capitalize">{campaign.status}</span>
-                </div>
+                <span className={`inline-block w-2 h-2 rounded-full mr-2 ${connectionStatus.connected ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                TikTok API Status: {connectionStatus.connected ? 'Connected' : 'Disconnected'}
               </div>
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => toggleCampaignStatus(campaign.id)}
-                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  {campaign.status === 'active' ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                </button>
-                <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                  <SettingsIcon className="w-4 h-4" />
-                </button>
-              </div>
+              {connectionStatus.connected && (
+                <Badge variant="secondary">
+                  {connectionStatus.permissions?.join(', ')}
+                </Badge>
+              )}
             </div>
+          </CardContent>
+        </Card>
+      )}
 
-            <p className="text-sm text-gray-600 mb-4">{campaign.description}</p>
-
-            {/* Progress Bars */}
-            <div className="space-y-3 mb-4">
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-600">Budget Progress</span>
-                  <span className="font-medium">£{campaign.spent.toLocaleString()} / £{campaign.budget.toLocaleString()}</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-blue-600 h-2 rounded-full" 
-                    style={{ width: `${(campaign.spent / campaign.budget) * 100}%` }}
-                  ></div>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-600">Invitations</span>
-                  <span className="font-medium">{campaign.sentInvites} / {campaign.targetInvites}</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-green-600 h-2 rounded-full" 
-                    style={{ width: `${(campaign.sentInvites / campaign.targetInvites) * 100}%` }}
-                  ></div>
+      {/* Automation Stats Dashboard */}
+      {automationStats && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center">
+                <MessageCircle className="h-8 w-8 text-blue-600" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Total Invites</p>
+                  <p className="text-2xl font-bold">{automationStats.totalInvitesSent}</p>
                 </div>
               </div>
-            </div>
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-blue-600">{campaign.responses}</p>
-                <p className="text-xs text-gray-500">Responses</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-green-600">{campaign.collaborations}</p>
-                <p className="text-xs text-gray-500">Collaborations</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-purple-600">£{campaign.revenue.toLocaleString()}</p>
-                <p className="text-xs text-gray-500">Revenue</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-orange-600">{((campaign.responses / campaign.sentInvites) * 100).toFixed(1)}%</p>
-                <p className="text-xs text-gray-500">Response Rate</p>
-              </div>
-            </div>
-
-            {/* Campaign Details */}
-            <div className="text-xs text-gray-500 space-y-1">
-              <div className="flex justify-between">
-                <span>Duration:</span>
-                <span>{new Date(campaign.startDate).toLocaleDateString()} - {new Date(campaign.endDate).toLocaleDateString()}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Categories:</span>
-                <span>{campaign.categories.join(', ')}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Followers:</span>
-                <span>{campaign.followerRange.min.toLocaleString()} - {campaign.followerRange.max.toLocaleString()}</span>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Create Campaign Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Create New Campaign</h2>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Campaign Name</label>
-                <input
-                  type="text"
-                  value={newCampaign.name}
-                  onChange={(e) => setNewCampaign({...newCampaign, name: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter campaign name"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Budget (£)</label>
-                  <input
-                    type="number"
-                    value={newCampaign.budget}
-                    onChange={(e) => setNewCampaign({...newCampaign, budget: parseInt(e.target.value) || 0})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="5000"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Target Invitations</label>
-                  <input
-                    type="number"
-                    value={newCampaign.targetInvites}
-                    onChange={(e) => setNewCampaign({...newCampaign, targetInvites: parseInt(e.target.value) || 0})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="200"
-                  />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center">
+                <BarChart3 className="h-8 w-8 text-green-600" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Response Rate</p>
+                  <p className="text-2xl font-bold">{automationStats.responseRate.toFixed(1)}%</p>
                 </div>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
-                  <input
-                    type="date"
-                    value={newCampaign.startDate}
-                    onChange={(e) => setNewCampaign({...newCampaign, startDate: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
-                  <input
-                    type="date"
-                    value={newCampaign.endDate}
-                    onChange={(e) => setNewCampaign({...newCampaign, endDate: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center">
+                <Users className="h-8 w-8 text-purple-600" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Active Campaigns</p>
+                  <p className="text-2xl font-bold">{automationStats.campaignsActive}</p>
                 </div>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Target Categories</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {['Technology', 'DIY & Repair', 'Gaming', 'Lifestyle'].map((category) => (
-                    <label key={category} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={newCampaign.categories.includes(category)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setNewCampaign({...newCampaign, categories: [...newCampaign.categories, category]});
-                          } else {
-                            setNewCampaign({...newCampaign, categories: newCampaign.categories.filter(c => c !== category)});
-                          }
-                        }}
-                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-gray-700">{category}</span>
-                    </label>
-                  ))}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center">
+                <Play className="h-8 w-8 text-orange-600" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Today's Invites</p>
+                  <p className="text-2xl font-bold">{automationStats.todayInvites}</p>
                 </div>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Follower Range</label>
-                <div className="grid grid-cols-2 gap-4">
-                  <input
-                    type="number"
-                    placeholder="Min followers"
-                    value={newCampaign.followerMin}
-                    onChange={(e) => setNewCampaign({...newCampaign, followerMin: parseInt(e.target.value) || 0})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <input
-                    type="number"
-                    placeholder="Max followers"
-                    value={newCampaign.followerMax}
-                    onChange={(e) => setNewCampaign({...newCampaign, followerMax: parseInt(e.target.value) || 1000000})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">GMV Threshold (£)</label>
-                <input
-                  type="number"
-                  value={newCampaign.gmvThreshold}
-                  onChange={(e) => setNewCampaign({...newCampaign, gmvThreshold: parseInt(e.target.value) || 0})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="1000"
-                />
-                <p className="text-xs text-gray-500 mt-1">Bot will stop when reaching creators below this GMV threshold</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                <textarea
-                  value={newCampaign.description}
-                  onChange={(e) => setNewCampaign({...newCampaign, description: e.target.value})}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Describe your campaign goals and target audience..."
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end space-x-3 mt-6">
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={createCampaign}
-                disabled={!newCampaign.name || !newCampaign.budget || !newCampaign.targetInvites}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Create Campaign
-              </button>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
+      )}
+
+      {selectedCampaign && (
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="automation">Automation</TabsTrigger>
+            <TabsTrigger value="performance">Performance</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="automation">
+            <Card>
+              <CardHeader>
+                <CardTitle>Automation Rules</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {automationRules.length === 0 ? (
+                  <p className="text-gray-600">No automation rules configured.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {automationRules.map((rule) => (
+                      <div key={rule.id} className="border rounded-lg p-4">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-semibold">Daily Automation</h4>
+                            <p className="text-sm text-gray-600">
+                              {rule.dailyInviteLimit} invites/day, {rule.delayBetweenInvites}min delays
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              Categories: {rule.creatorCriteria.categories.join(', ')}
+                            </p>
+                            {rule.schedule.enabled && (
+                              <p className="text-sm text-gray-600">
+                                Scheduled: {rule.schedule.time} ({rule.schedule.timezone})
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            {rule.isActive ? (
+                              <Button 
+                                size="sm" 
+                                variant="destructive"
+                                onClick={() => stopAutomation(rule.id)}
+                              >
+                                <Pause className="h-4 w-4 mr-1" />
+                                Stop
+                              </Button>
+                            ) : (
+                              <Button 
+                                size="sm"
+                                onClick={() => startAutomation(rule.id)}
+                              >
+                                <Play className="h-4 w-4 mr-1" />
+                                Start
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      )}
+
+      {/* Automation Rule Form */}
+      {showAutomationForm && (
+        <Card className="max-w-2xl mx-auto">
+          <CardHeader>
+            <CardTitle>Create Automation Rule</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AutomationForm 
+              onSubmit={createAutomationRule}
+              onCancel={() => setShowAutomationForm(false)}
+            />
+          </CardContent>
+        </Card>
       )}
     </div>
   );
-};
-
-export default CampaignManager;
+}
