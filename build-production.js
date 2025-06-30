@@ -16,7 +16,7 @@ try {
   // Step 1: Build frontend using existing config with production env
   console.log('📦 Building frontend...');
   const { stdout: viteOutput, stderr: viteError } = await execAsync(
-    'npx vite build',
+    'npx vite build --config vite.config.prod.js',
     { 
       env: {
         ...process.env,
