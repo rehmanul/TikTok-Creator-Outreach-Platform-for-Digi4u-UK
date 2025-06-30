@@ -3,7 +3,7 @@ services:
     name: tiktok-affiliate-bot
     env: node
     plan: free
-    buildCommand: npm install && npm run build
+    buildCommand: npm install && npx vite build && npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
@@ -15,11 +15,11 @@ services:
           name: tiktok-affiliate-bot
           property: port
       - key: TIKTOK_REDIRECT_URI
-        value: https://tiktok-affiliate-bot.onrender.com/api/tiktok/callback
+        value: https://dgtok-4u.onrender.com/api/tiktok/callback
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRES_IN
-        value: 7d
+        value: 30d
       - key: TIKTOK_CLIENT_KEY
         sync: false
       - key: TIKTOK_CLIENT_SECRET
