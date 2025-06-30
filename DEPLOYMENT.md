@@ -127,7 +127,43 @@ The following files are already configured for Render deployment:
 - ✅ `.env.example` - Environment variables template
 - ✅ Database schema and migrations
 
-### 9. Free Tier Limitations
+### 9. Troubleshooting Build Errors
+
+#### "vite: not found" Error
+If you see this error during deployment:
+```
+sh: 1: vite: not found
+==> Build failed 😞
+```
+
+**Cause**: Render is not using the render.yaml build command configuration.
+
+**Solution 1 - Update Build Command in Dashboard**:
+1. Go to your Render service dashboard
+2. Click on "Settings" tab
+3. Navigate to "Build & Deploy" section
+4. Set Build Command to:
+   ```
+   npm install && npx vite build && npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+   ```
+5. Click "Save Changes"
+6. Trigger a manual deploy
+
+**Solution 2 - Delete and Recreate Service**:
+1. Delete the existing service in Render
+2. Create new service from GitHub repository
+3. Ensure render.yaml is properly configured
+4. Deploy using Blueprint (render.yaml)
+
+#### Build Command Explanation
+The correct build command does:
+- `npm install` - Install dependencies
+- `npx vite build` - Build React frontend (creates dist/public)
+- `npx esbuild server/index.ts` - Bundle Node.js backend (creates dist/index.js)
+
+Using `npx` ensures locally installed packages are used instead of global ones.
+
+### 10. Free Tier Limitations
 
 **Render Free Tier:**
 - Apps sleep after 15 minutes of inactivity
