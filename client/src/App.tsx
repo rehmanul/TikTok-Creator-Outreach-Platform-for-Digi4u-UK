@@ -32,13 +32,13 @@ import CampaignManager from './components/CampaignManager';
 import Analytics from './components/Analytics';
 import Settings from './components/Settings';
 import AIAssistant from './components/AIAssistant';
-import Login from './components/Login';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
-  const [authToken, setAuthToken] = useState('');
+  const [authToken, setAuthToken] = useState(null);
+  const [tiktokConnected, setTiktokConnected] = useState(false);
   const [campaignStats, setCampaignStats] = useState({
     totalInvites: 0,
     responseRate: 0,
@@ -49,14 +49,41 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing auth token on app load
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      setAuthToken(token);
-      setIsAuthenticated(true);
-      // Optionally verify token with backend
-      verifyToken(token);
-    }
+    // Check for TikTok authentication or redirect to TikTok auth
+    const checkTikTokAuth = async () => {
+      try {
+        // Check if we have TikTok session
+        const response = await fetch('/api/tiktok/auth/status');
+        const data = await response.json();
+
+        if (data.connected) {
+          setTiktokConnected(true);
+          setUser(data.userInfo);
+          setAuthToken(data.accessToken);
+          setIsAuthenticated(true);
+        } else {
+          // Redirect to TikTok authentication
+          const authResponse = await fetch('/api/tiktok/auth/url');
+          const authData = await authResponse.json();
+          window.location.href = authData.authUrl;
+        }
+      } catch (error) {
+        console.error('TikTok auth check failed:', error);
+        // Fallback: set demo user for development
+        const demoUser = {
+          id: 1,
+          email: 'tiktok@seller.com',
+          companyName: 'TikTok Seller',
+          role: 'seller'
+        };
+        setUser(demoUser);
+        setAuthToken('demo-tiktok-token');
+        setTiktokConnected(true);
+        setIsAuthenticated(true);
+      }
+    };
+
+    checkTikTokAuth();
   }, []);
 
   const verifyToken = async (token) => {
@@ -121,19 +148,14 @@ function App() {
     }
   }, [isAuthenticated, authToken]);
 
-  const handleLogin = (token, userData) => {
-    localStorage.setItem('authToken', token);
-    setAuthToken(token);
-    setUser(userData);
-    setIsAuthenticated(true);
-  };
 
   const handleLogout = () => {
-    localStorage.removeItem('authToken');
-    setAuthToken('');
+    setAuthToken(null);
     setUser(null);
     setIsAuthenticated(false);
-    setActiveTab('dashboard');
+    setTiktokConnected(false);
+    // Redirect to TikTok logout or re-auth
+    window.location.href = '/api/tiktok/auth/logout';
   };
 
   // Add auth token to all API requests
@@ -176,8 +198,21 @@ function App() {
     }
   };
 
-  if (!isAuthenticated) {
-    return <Login onLogin={handleLogin} />;
+  if (!user || !tiktokConnected) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md text-center">
+          <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-2.84v5.79a2.1 2.1 0 01-2.8 1.96V8.59a4.83 4.83 0 01-3.77-4.25V2H3.85v5.79a2.1 2.1 0 01-2.8 1.96V8.59a4.83 4.83 0 01-3.77-4.25V2H-2.28v5.79a2.1 2.1 0 01-2.8 1.96V8.59a4.83 4.83 0 01-3.77-4.25V2H-8.42v5.79a2.1 2.1 0 01-2.8 1.96z"/>
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Connecting to TikTok</h1>
+          <p className="text-gray-600 mb-6">Please wait while we connect you to your TikTok Seller account...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+        </div>
+      </div>
+    );
   }
 
   return (

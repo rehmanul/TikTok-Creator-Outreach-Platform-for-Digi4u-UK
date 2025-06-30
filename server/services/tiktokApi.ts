@@ -464,6 +464,40 @@ export class TikTokAPIService {
     }
   }
 
+  // Check if we have an active TikTok seller session
+  async checkSellerSession(): Promise<{
+    hasSession: boolean;
+    sellerInfo?: any;
+    error?: string;
+  }> {
+    try {
+      if (!this.accessToken) {
+        return { hasSession: false, error: 'No access token available' };
+      }
+
+      const validation = await this.validateConnection();
+      
+      if (validation.connected && validation.advertiserInfo) {
+        return {
+          hasSession: true,
+          sellerInfo: {
+            advertiserId: validation.advertiserInfo.advertiser_id,
+            advertiserName: validation.advertiserInfo.advertiser_name,
+            status: validation.advertiserInfo.status,
+            permissions: validation.permissions
+          }
+        };
+      } else {
+        return { hasSession: false, error: validation.error };
+      }
+    } catch (error) {
+      return {
+        hasSession: false,
+        error: error instanceof Error ? error.message : 'Session check failed'
+      };
+    }
+  }
+
   // Update automation configuration
   updateAutomationConfig(config: Partial<AutomationConfig>): void {
     this.automationConfig = { ...this.automationConfig, ...config };
