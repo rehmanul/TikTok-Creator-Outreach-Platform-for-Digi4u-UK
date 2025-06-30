@@ -1,18 +1,19 @@
 import { Router } from 'express';
 import { tiktokApi } from '../services/tiktokApi.js';
 import { authMiddleware } from '../middleware/auth.js';
+import { env } from '../config/environment.js';
 
 const router = Router();
 
 // TikTok OAuth authorization URL
 router.get('/auth/url', (req, res) => {
-  const clientKey = process.env.TIKTOK_CLIENT_KEY || '7519035078651936769';
-  const redirectUri = process.env.TIKTOK_REDIRECT_URI || `${req.protocol}://${req.get('host')}/api/tiktok/callback`;
+  const clientKey = env.TIKTOK_CLIENT_KEY;
+  const redirectUri = env.TIKTOK_REDIRECT_URI;
   const state = Math.random().toString(36).substring(7);
   
   const authUrl = `https://business-api.tiktok.com/portal/auth?app_id=${clientKey}&state=${state}&redirect_uri=${encodeURIComponent(redirectUri)}`;
   
-  res.json({ authUrl, state });
+  res.json({ authUrl, state, redirectUri });
 });
 
 // TikTok OAuth callback

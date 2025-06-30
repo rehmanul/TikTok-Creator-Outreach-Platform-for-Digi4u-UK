@@ -43,7 +43,7 @@ export const getEnvironmentConfig = (): EnvironmentConfig => {
     TIKTOK_CLIENT_KEY: process.env.TIKTOK_CLIENT_KEY || '7519035078651936769',
     TIKTOK_CLIENT_SECRET: process.env.TIKTOK_CLIENT_SECRET || '',
     TIKTOK_ADVERTISER_ID: process.env.TIKTOK_ADVERTISER_ID || '7519829315018588178',
-    TIKTOK_REDIRECT_URI: process.env.TIKTOK_REDIRECT_URI || '',
+    TIKTOK_REDIRECT_URI: process.env.TIKTOK_REDIRECT_URI || 'https://tiktok-affiliate-bot.onrender.com/api/tiktok/callback',
     TIKTOK_ACCESS_TOKEN: process.env.TIKTOK_ACCESS_TOKEN,
     
     GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
@@ -59,16 +59,18 @@ export const getEnvironmentConfig = (): EnvironmentConfig => {
     WEBHOOK_SECRET: process.env.WEBHOOK_SECRET,
   };
 
-  // Validate required environment variables
-  const requiredVars = [
-    'TIKTOK_CLIENT_SECRET',
-    'GEMINI_API_KEY'
-  ];
+  // Validate required environment variables only in production
+  if (config.NODE_ENV === 'production') {
+    const requiredVars = [
+      'TIKTOK_CLIENT_SECRET',
+      'GEMINI_API_KEY'
+    ];
 
-  const missingVars = requiredVars.filter(varName => !config[varName as keyof EnvironmentConfig]);
-  
-  if (missingVars.length > 0) {
-    throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
+    const missingVars = requiredVars.filter(varName => !config[varName as keyof EnvironmentConfig]);
+    
+    if (missingVars.length > 0) {
+      throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
+    }
   }
 
   return config;
