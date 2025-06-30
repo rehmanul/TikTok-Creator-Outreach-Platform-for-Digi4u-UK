@@ -507,6 +507,24 @@ export class TikTokAPIService {
   getAutomationConfig(): AutomationConfig {
     return { ...this.automationConfig };
   }
+
+  // Verify webhook signature for security
+  verifyWebhookSignature(payload: string, signature: string): boolean {
+    try {
+      const webhookSecret = process.env.WEBHOOK_SECRET || 'your_webhook_secret';
+      const expectedSignature = crypto.createHmac('sha256', webhookSecret)
+        .update(payload)
+        .digest('hex');
+      
+      return crypto.timingSafeEqual(
+        Buffer.from(signature),
+        Buffer.from(`sha256=${expectedSignature}`)
+      );
+    } catch (error) {
+      console.error('Webhook signature verification error:', error);
+      return false;
+    }
+  }
 }
 
 export const tiktokApi = new TikTokAPIService();
