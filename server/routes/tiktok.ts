@@ -5,7 +5,7 @@ import { authMiddleware } from '../middleware/auth.js';
 const router = Router();
 
 // TikTok OAuth authorization URL
-router.get('/auth/url', authMiddleware, (req, res) => {
+router.get('/auth/url', (req, res) => {
   const clientKey = process.env.TIKTOK_CLIENT_KEY || '7519035078651936769';
   const redirectUri = process.env.TIKTOK_REDIRECT_URI || `${req.protocol}://${req.get('host')}/api/tiktok/callback`;
   const state = Math.random().toString(36).substring(7);
