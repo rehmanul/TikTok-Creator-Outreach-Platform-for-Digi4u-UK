@@ -38,7 +38,7 @@ export const getEnvironmentConfig = (): EnvironmentConfig => {
     NODE_ENV: (process.env.NODE_ENV as any) || 'development',
     
     JWT_SECRET: process.env.JWT_SECRET || 'dev-secret-key-change-in-production',
-    JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
+    JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '30d', // Extended to 30 days
     
     TIKTOK_CLIENT_KEY: process.env.TIKTOK_CLIENT_KEY || '7519035078651936769',
     TIKTOK_CLIENT_SECRET: process.env.TIKTOK_CLIENT_SECRET || '',
