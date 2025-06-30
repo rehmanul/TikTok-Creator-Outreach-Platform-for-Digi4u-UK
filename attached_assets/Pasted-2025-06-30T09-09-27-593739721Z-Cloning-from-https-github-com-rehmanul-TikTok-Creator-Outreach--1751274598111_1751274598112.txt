@@ -1,0 +1,33 @@
+2025-06-30T09:09:27.593739721Z ==> Cloning from https://github.com/rehmanul/TikTok-Creator-Outreach-Platform-for-Digi4u-UK
+2025-06-30T09:09:28.400911907Z ==> Checking out commit e6a5651ffa0173f893b27bf8a98a48f979b69b8b in branch main
+2025-06-30T09:09:31.654661831Z ==> Using Node.js version 22.16.0 (default)
+2025-06-30T09:09:31.680951545Z ==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+2025-06-30T09:09:33.67321029Z ==> Using Bun version 1.1.0 (default)
+2025-06-30T09:09:33.673231161Z ==> Docs on specifying a Bun version: https://render.com/docs/bun-version
+2025-06-30T09:09:33.735829919Z ==> Running build command 'npm install && npx vite build && npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist'...
+2025-06-30T09:09:40.212534609Z 
+2025-06-30T09:09:40.21255886Z added 409 packages, and audited 410 packages in 6s
+2025-06-30T09:09:40.21256987Z 
+2025-06-30T09:09:40.21257728Z 54 packages are looking for funding
+2025-06-30T09:09:40.21258189Z   run `npm fund` for details
+2025-06-30T09:09:40.214142058Z 
+2025-06-30T09:09:40.214153278Z 1 low severity vulnerability
+2025-06-30T09:09:40.214156718Z 
+2025-06-30T09:09:40.214160078Z To address all issues, run:
+2025-06-30T09:09:40.214163938Z   npm audit fix
+2025-06-30T09:09:40.214167189Z 
+2025-06-30T09:09:40.214170559Z Run `npm audit` for details.
+2025-06-30T09:09:48.859080201Z failed to load config from /opt/render/project/src/vite.config.ts
+2025-06-30T09:09:48.859373416Z error during build:
+2025-06-30T09:09:48.859383536Z Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'vite' imported from /opt/render/project/src/node_modules/.vite-temp/vite.config.ts.timestamp-1751274588856-99e82b2b5cd2d.mjs
+2025-06-30T09:09:48.859387536Z     at Object.getPackageJSONURL (node:internal/modules/package_json_reader:256:9)
+2025-06-30T09:09:48.859391416Z     at packageResolve (node:internal/modules/esm/resolve:768:81)
+2025-06-30T09:09:48.859396426Z     at moduleResolve (node:internal/modules/esm/resolve:854:18)
+2025-06-30T09:09:48.859400717Z     at defaultResolve (node:internal/modules/esm/resolve:984:11)
+2025-06-30T09:09:48.859405397Z     at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:780:12)
+2025-06-30T09:09:48.859409707Z     at #cachedDefaultResolve (node:internal/modules/esm/loader:704:25)
+2025-06-30T09:09:48.859414077Z     at ModuleLoader.resolve (node:internal/modules/esm/loader:687:38)
+2025-06-30T09:09:48.859418347Z     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:305:38)
+2025-06-30T09:09:48.859421227Z     at ModuleJob._link (node:internal/modules/esm/module_job:137:49)
+2025-06-30T09:09:48.902389321Z ==> Build failed 😞
+2025-06-30T09:09:48.902407832Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
