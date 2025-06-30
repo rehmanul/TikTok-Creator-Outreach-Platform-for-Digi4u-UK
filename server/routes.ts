@@ -8,7 +8,7 @@ import invitationsRoutes from "./routes/invitations";
 import webhookRoutes from "./routes/webhooks";
 import analyticsRoutes from "./routes/analytics";
 import tiktokRoutes from "./routes/tiktok";
-import { campaignEngine } from "./services/campaignAutomation";
+import { campaignAutomation } from "./services/campaignAutomation";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check endpoint
@@ -30,7 +30,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/tiktok", tiktokRoutes);
 
   // Listen to campaign automation events
-  campaignEngine.on("campaign:started", async ({ campaignId }) => {
+  campaignAutomation.on("campaign:started", async ({ campaignId }) => {
     await storage.trackEvent({
       eventType: "campaign_started",
       campaignId,
@@ -38,7 +38,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  campaignEngine.on("invitation:sent", async ({ campaignId, creatorId }) => {
+  campaignAutomation.on("invitation:sent", async ({ campaignId, creatorId }) => {
     await storage.trackEvent({
       eventType: "invitation_sent",
       campaignId,
@@ -47,7 +47,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  campaignEngine.on("invitation:accepted", async ({ invitationId }) => {
+  campaignAutomation.on("invitation:accepted", async ({ invitationId }) => {
     await storage.trackEvent({
       eventType: "invitation_accepted",
       invitationId,
@@ -55,7 +55,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  campaignEngine.on("campaign:completed", async ({ campaignId, stats }) => {
+  campaignAutomation.on("campaign:completed", async ({ campaignId, stats }) => {
     await storage.trackEvent({
       eventType: "campaign_completed",
       campaignId,
