@@ -1,0 +1,63 @@
+2025-07-01T01:35:16.611307425Z ==> Running build command 'npm install --include=dev && node deploy-build.js'...
+2025-07-01T01:35:27.482335674Z 
+2025-07-01T01:35:27.482366805Z added 518 packages, and audited 519 packages in 10s
+2025-07-01T01:35:27.482378805Z 
+2025-07-01T01:35:27.482384665Z 66 packages are looking for funding
+2025-07-01T01:35:27.482405215Z   run `npm fund` for details
+2025-07-01T01:35:27.504391337Z 
+2025-07-01T01:35:27.504407137Z 7 vulnerabilities (1 low, 6 moderate)
+2025-07-01T01:35:27.504410417Z 
+2025-07-01T01:35:27.504413777Z To address issues that do not require attention, run:
+2025-07-01T01:35:27.504416477Z   npm audit fix
+2025-07-01T01:35:27.504419047Z 
+2025-07-01T01:35:27.504421677Z To address all issues (including breaking changes), run:
+2025-07-01T01:35:27.504427228Z   npm audit fix --force
+2025-07-01T01:35:27.504429968Z 
+2025-07-01T01:35:27.504433488Z Run `npm audit` for details.
+2025-07-01T01:35:27.613379056Z 🚀 Starting production deployment build...
+2025-07-01T01:35:27.613646341Z 📍 Current directory: /opt/render/project/src
+2025-07-01T01:35:27.613656471Z 🔍 Checking vite availability...
+2025-07-01T01:35:27.613683472Z Vite path: /opt/render/project/src/node_modules/.bin/vite
+2025-07-01T01:35:27.613809094Z Vite exists: true
+2025-07-01T01:35:27.613857155Z 📋 Checking installed packages...
+2025-07-01T01:35:27.621268667Z Vite in .bin: lrwxrwxrwx   1 render render    19 Jul  1 01:35 vite -> ../vite/bin/vite.js
+2025-07-01T01:35:27.621301788Z 📦 Building frontend with Vite...
+2025-07-01T01:35:33.546627383Z Vite output: vite v5.4.19 building for production...
+2025-07-01T01:35:33.546650013Z transforming...
+2025-07-01T01:35:33.546653923Z ✓ 2380 modules transformed.
+2025-07-01T01:35:33.546657593Z rendering chunks...
+2025-07-01T01:35:33.546660514Z computing gzip size...
+2025-07-01T01:35:33.546663914Z ../dist/public/index.html                   0.63 kB │ gzip:   0.38 kB
+2025-07-01T01:35:33.546666643Z ../dist/public/assets/index-BaCdRrHC.css   28.59 kB │ gzip:   5.47 kB
+2025-07-01T01:35:33.546669854Z ../dist/public/assets/index-BTIZ68wM.js   657.30 kB │ gzip: 177.71 kB
+2025-07-01T01:35:33.546672604Z ✓ built in 5.66s
+2025-07-01T01:35:33.546675224Z 
+2025-07-01T01:35:33.546932799Z ✅ Frontend build completed
+2025-07-01T01:35:33.54698255Z 🔧 Building backend with esbuild...
+2025-07-01T01:35:33.563077658Z ✅ Backend build completed
+2025-07-01T01:35:33.563092978Z 🎉 Production build completed successfully!
+2025-07-01T01:35:33.56315585Z 🔍 Verifying build outputs...
+2025-07-01T01:35:33.567815939Z Build outputs:
+2025-07-01T01:35:33.567825129Z  total 120
+2025-07-01T01:35:33.567829269Z drwxr-sr-x  3 render render   4096 Jul  1 01:35 .
+2025-07-01T01:35:33.567832139Z drwxr-sr-x 10 render render   4096 Jul  1 01:35 ..
+2025-07-01T01:35:33.567835399Z -rw-r--r--  1 render render 109531 Jul  1 01:35 index.js
+2025-07-01T01:35:33.567838179Z drwxr-sr-x  3 render render   4096 Jul  1 01:35 public
+2025-07-01T01:35:33.567840819Z 
+2025-07-01T01:35:37.892099734Z ==> Uploading build...
+2025-07-01T01:35:48.391015075Z ==> Uploaded in 7.1s. Compression took 3.4s
+2025-07-01T01:35:48.430182766Z ==> Build successful 🎉
+2025-07-01T01:35:52.371795532Z ==> Deploying...
+2025-07-01T01:36:15.165860631Z ==> Running 'npm run start'
+2025-07-01T01:36:16.358030718Z 
+2025-07-01T01:36:16.36404139Z > rest-express@1.0.0 start
+2025-07-01T01:36:16.36405532Z > NODE_ENV=production node dist/index.js
+2025-07-01T01:36:16.36405806Z 
+2025-07-01T01:36:24.864637454Z 1:36:24 AM [express] serving on port 5000
+2025-07-01T01:36:33.132526694Z ==> Your service is live 🎉
+2025-07-01T01:36:33.160950849Z ==> 
+2025-07-01T01:36:33.185977384Z ==> ///////////////////////////////////////////////////////////
+2025-07-01T01:36:33.21242351Z ==> 
+2025-07-01T01:36:33.238551955Z ==> Available at your primary URL https://dgtok-4u.onrender.com
+2025-07-01T01:36:33.26367425Z ==> 
+2025-07-01T01:36:33.289898466Z ==> ///////////////////////////////////////////////////////////
