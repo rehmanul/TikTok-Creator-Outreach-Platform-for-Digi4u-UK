@@ -64,6 +64,11 @@ export class TikTokAPIService {
     console.log('TikTok tokens cleared');
   }
 
+  // Check if we have a valid token
+  hasValidToken(): boolean {
+    return !!this.accessToken && this.accessToken.length > 0;
+  }
+
   // OAuth 2.0 authentication with TikTok Business API
   async authenticate(authCode: string): Promise<string> {
     try {
@@ -102,19 +107,31 @@ export class TikTokAPIService {
         message: response.data?.message
       });
 
-      if (response.data.code === 0) {
+      if (response.data.code === 0 && response.data.data?.access_token) {
         this.accessToken = response.data.data.access_token;
-        console.log('TikTok authentication successful');
+        console.log('TikTok authentication successful, token length:', this.accessToken.length);
         return this.accessToken;
       } else {
-        console.error('TikTok authentication failed:', response.data);
+        console.error('TikTok authentication failed:', {
+          code: response.data.code,
+          message: response.data.message,
+          data: response.data.data
+        });
         
-        // If auth code is used, provide helpful error message
-        if (response.data.message && response.data.message.includes('Auth_code is used')) {
-          throw new Error('Authorization code has expired or been used. Please start the authentication process again.');
+        // Handle specific error cases
+        if (response.data.message) {
+          if (response.data.message.includes('Auth_code is used')) {
+            throw new Error('Auth_code is used，please re-authorize.');
+          }
+          if (response.data.message.includes('invalid_grant')) {
+            throw new Error('Invalid authorization code. Please try authenticating again.');
+          }
+          if (response.data.message.includes('expired')) {
+            throw new Error('Authorization code has expired. Please try again.');
+          }
         }
         
-        throw new Error(`Authentication failed: ${response.data.message || 'Unknown error'}`);
+        throw new Error(`Authentication failed: ${response.data.message || `Error code: ${response.data.code}`}`);
       }
     } catch (error) {
       console.error('TikTok authentication error:', error);
@@ -472,6 +489,17 @@ export class TikTokAPIService {
     error?: string;
   }> {
     try {
+      if (!this.accessToken) {
+        return {
+          connected: false,
+          permissions: [],
+          advertiserInfo: null,
+          error: 'No access token available'
+        };
+      }
+
+      console.log('Validating TikTok connection with advertiser ID:', this.advertiserId);
+      
       const response = await axios.get(`${this.baseURL}/advertiser/info/`, {
         headers: {
           'Access-Token': this.accessToken,
@@ -479,30 +507,74 @@ export class TikTokAPIService {
         },
         params: {
           advertiser_ids: JSON.stringify([this.advertiserId])
-        }
+        },
+        timeout: 10000
       });
 
-      if (response.data.code === 0) {
+      console.log('TikTok validation response:', {
+        status: response.status,
+        code: response.data?.code,
+        message: response.data?.message,
+        hasData: !!response.data?.data
+      });
+
+      if (response.data.code === 0 && response.data.data?.list?.length > 0) {
         const advertiserInfo = response.data.data.list[0];
+        console.log('TikTok validation successful:', {
+          advertiserId: advertiserInfo.advertiser_id,
+          name: advertiserInfo.advertiser_name,
+          status: advertiserInfo.status
+        });
+        
         return {
           connected: true,
           permissions: ['creator_marketplace', 'messaging', 'analytics'],
           advertiserInfo: advertiserInfo
         };
       } else {
+        console.error('TikTok validation failed:', response.data);
         return {
           connected: false,
           permissions: [],
           advertiserInfo: null,
-          error: response.data.message
+          error: response.data.message || `API error code: ${response.data.code}`
         };
       }
     } catch (error) {
+      console.error('TikTok validation error:', error);
+      
+      if (axios.isAxiosError(error)) {
+        console.error('Axios error details:', {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data
+        });
+        
+        // Handle specific HTTP errors
+        if (error.response?.status === 401) {
+          return {
+            connected: false,
+            permissions: [],
+            advertiserInfo: null,
+            error: 'Access token is invalid or expired'
+          };
+        }
+        
+        if (error.response?.status === 403) {
+          return {
+            connected: false,
+            permissions: [],
+            advertiserInfo: null,
+            error: 'Access forbidden - check API permissions'
+          };
+        }
+      }
+      
       return {
         connected: false,
         permissions: [],
         advertiserInfo: null,
-        error: error instanceof Error ? error.message : 'Connection failed'
+        error: error instanceof Error ? error.message : 'Connection validation failed'
       };
     }
   }
