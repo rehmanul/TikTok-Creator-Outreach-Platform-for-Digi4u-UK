@@ -16,7 +16,7 @@ router.get('/auth/url', (req, res) => {
   res.json({ authUrl, state, redirectUri });
 });
 
-// TikTok OAuth callback
+// TikTok OAuth callback (legacy route)
 router.get('/callback', async (req, res) => {
   try {
     const { auth_code, state } = req.query;
@@ -42,6 +42,36 @@ router.get('/callback', async (req, res) => {
     }
   } catch (error) {
     console.error('TikTok callback error:', error);
+    res.status(500).json({ error: 'Failed to connect TikTok account' });
+  }
+});
+
+// TikTok OAuth callback (matches TikTok app configuration)
+router.get('/oauth-callback', async (req, res) => {
+  try {
+    const { auth_code, state } = req.query;
+    
+    if (!auth_code) {
+      return res.status(400).json({ error: 'Authorization code is required' });
+    }
+    
+    const accessToken = await tiktokApi.authenticate(auth_code as string);
+    
+    // Validate the connection and get seller info
+    const validation = await tiktokApi.validateConnection();
+    
+    if (validation.connected) {
+      // Store the session (in production, use proper session management)
+      // For now, redirect back to the main app
+      res.redirect('/?tiktok_connected=true');
+    } else {
+      res.status(500).json({ 
+        error: 'Failed to validate TikTok connection',
+        details: validation.error
+      });
+    }
+  } catch (error) {
+    console.error('TikTok OAuth callback error:', error);
     res.status(500).json({ error: 'Failed to connect TikTok account' });
   }
 });
