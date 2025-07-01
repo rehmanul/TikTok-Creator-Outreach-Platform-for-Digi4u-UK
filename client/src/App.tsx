@@ -49,6 +49,30 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Check for OAuth callback parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const tiktokConnected = urlParams.get('tiktok_connected');
+    const tiktokError = urlParams.get('tiktok_error');
+    
+    if (tiktokConnected === 'true') {
+      console.log('TikTok authentication successful');
+      setTiktokConnected(true);
+      setIsAuthenticated(true);
+      // Clear URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
+      return;
+    }
+    
+    if (tiktokError) {
+      console.error('TikTok authentication error:', tiktokError);
+      // Clear URL parameters and start fresh auth
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
+      if (tiktokError === 'code_expired' || tiktokError === 'auth_failed') {
+        alert('TikTok authentication failed. Please try again.');
+      }
+    }
+
     // Check for TikTok authentication or redirect to TikTok auth
     const checkTikTokAuth = async () => {
       try {
@@ -83,7 +107,10 @@ function App() {
       }
     };
 
-    checkTikTokAuth();
+    // Only check auth if we don't have error parameters
+    if (!tiktokError) {
+      checkTikTokAuth();
+    }
   }, []);
 
   const verifyToken = async (token) => {

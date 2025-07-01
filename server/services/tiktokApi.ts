@@ -58,6 +58,12 @@ export class TikTokAPIService {
     };
   }
 
+  // Clear stored tokens
+  clearTokens(): void {
+    this.accessToken = '';
+    console.log('TikTok tokens cleared');
+  }
+
   // OAuth 2.0 authentication with TikTok Business API
   async authenticate(authCode: string): Promise<string> {
     try {
@@ -71,6 +77,9 @@ export class TikTokAPIService {
       if (!this.clientSecret) {
         throw new Error('TIKTOK_CLIENT_SECRET environment variable is required');
       }
+
+      // Clear any existing tokens before new authentication
+      this.clearTokens();
 
       const requestData = {
         app_id: this.clientKey,
@@ -99,6 +108,12 @@ export class TikTokAPIService {
         return this.accessToken;
       } else {
         console.error('TikTok authentication failed:', response.data);
+        
+        // If auth code is used, provide helpful error message
+        if (response.data.message && response.data.message.includes('Auth_code is used')) {
+          throw new Error('Authorization code has expired or been used. Please start the authentication process again.');
+        }
+        
         throw new Error(`Authentication failed: ${response.data.message || 'Unknown error'}`);
       }
     } catch (error) {

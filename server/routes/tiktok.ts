@@ -33,13 +33,19 @@ router.get('/oauth-callback', async (req, res) => {
       allParams: Object.keys(req.query)
     });
 
+    // Check for error parameters from TikTok
+    if (req.query.error) {
+      console.error('TikTok OAuth error:', req.query.error, req.query.error_description);
+      return res.redirect('/?tiktok_error=auth_denied');
+    }
+
     // TikTok may send either 'auth_code' or 'code' parameter
     const authCode = (req.query.auth_code || req.query.code) as string;
     const { state } = req.query;
     
     if (!authCode) {
       console.error('Missing authorization code in callback');
-      return res.status(400).json({ error: 'Authorization code is required' });
+      return res.redirect('/?tiktok_error=missing_code');
     }
     
     console.log('Attempting TikTok authentication...');
@@ -55,24 +61,20 @@ router.get('/oauth-callback', async (req, res) => {
       res.redirect('/?tiktok_connected=true');
     } else {
       console.error('TikTok connection validation failed:', validation.error);
-      res.status(500).json({ 
-        error: 'Failed to validate TikTok connection',
-        details: validation.error
-      });
+      res.redirect('/?tiktok_error=validation_failed');
     }
   } catch (error) {
     console.error('TikTok OAuth callback error:', error);
     console.error('Error details:', error instanceof Error ? error.message : error);
-    console.error('Auth code received:', req.query.auth_code ? 'yes' : 'no');
-    console.error('State received:', req.query.state ? 'yes' : 'no');
     
-    // Return detailed error for debugging
-    res.status(500).json({ 
-      error: 'Failed to connect TikTok account',
-      details: error instanceof Error ? error.message : 'Unknown error',
-      authCode: req.query.auth_code ? 'received' : 'missing',
-      timestamp: new Date().toISOString()
-    });
+    // Check if it's an auth code reuse error
+    if (error instanceof Error && error.message.includes('Auth_code is used')) {
+      console.log('Auth code already used, redirecting to start new auth flow');
+      return res.redirect('/?tiktok_error=code_expired');
+    }
+    
+    // For other errors, still redirect with error flag
+    res.redirect('/?tiktok_error=auth_failed');
   }
 });
 
