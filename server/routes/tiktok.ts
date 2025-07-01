@@ -28,19 +28,22 @@ router.get('/oauth-callback', async (req, res) => {
   try {
     console.log('TikTok OAuth callback received:', {
       authCode: req.query.auth_code ? 'present' : 'missing',
+      code: req.query.code ? 'present' : 'missing',
       state: req.query.state ? 'present' : 'missing',
       allParams: Object.keys(req.query)
     });
 
-    const { auth_code, state } = req.query;
+    // TikTok may send either 'auth_code' or 'code' parameter
+    const authCode = (req.query.auth_code || req.query.code) as string;
+    const { state } = req.query;
     
-    if (!auth_code) {
+    if (!authCode) {
       console.error('Missing authorization code in callback');
       return res.status(400).json({ error: 'Authorization code is required' });
     }
     
     console.log('Attempting TikTok authentication...');
-    const accessToken = await tiktokApi.authenticate(auth_code as string);
+    const accessToken = await tiktokApi.authenticate(authCode);
     console.log('Authentication successful, validating connection...');
     
     // Validate the connection and get seller info

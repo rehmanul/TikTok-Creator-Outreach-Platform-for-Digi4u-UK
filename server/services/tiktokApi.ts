@@ -68,6 +68,10 @@ export class TikTokAPIService {
         hasClientSecret: !!this.clientSecret
       });
 
+      if (!this.clientSecret) {
+        throw new Error('TIKTOK_CLIENT_SECRET environment variable is required');
+      }
+
       const requestData = {
         app_id: this.clientKey,
         secret: this.clientSecret,
