@@ -35,9 +35,21 @@ export type Environment = z.infer<typeof envSchema>;
 export const env = envSchema.parse(process.env);
 
 // Set dynamic redirect URI for Replit deployment
-if (env.REPL_ID && env.REPL_SLUG && env.REPL_OWNER && !env.TIKTOK_REDIRECT_URI) {
-  env.TIKTOK_REDIRECT_URI = `https://${env.REPL_ID}.${env.REPL_SLUG}.${env.REPL_OWNER}.replit.app/api/tiktok/oauth-callback`;
+if (!env.TIKTOK_REDIRECT_URI) {
+  if (env.REPL_ID && env.REPL_SLUG && env.REPL_OWNER) {
+    env.TIKTOK_REDIRECT_URI = `https://${env.REPL_ID}.${env.REPL_SLUG}.${env.REPL_OWNER}.replit.app/api/tiktok/oauth-callback`;
+  } else {
+    // Fallback to production URL if REPL env vars not available
+    env.TIKTOK_REDIRECT_URI = `https://dgtok-4u.onrender.com/api/tiktok/oauth-callback`;
+  }
 }
+
+console.log('TikTok configuration:', {
+  clientKey: env.TIKTOK_CLIENT_KEY?.substring(0, 10) + '...',
+  redirectUri: env.TIKTOK_REDIRECT_URI,
+  advertiserId: env.TIKTOK_ADVERTISER_ID?.substring(0, 10) + '...',
+  hasSecret: !!env.TIKTOK_CLIENT_SECRET
+});
 
 export const isDevelopment = env.NODE_ENV === 'development';
 export const isProduction = env.NODE_ENV === 'production';

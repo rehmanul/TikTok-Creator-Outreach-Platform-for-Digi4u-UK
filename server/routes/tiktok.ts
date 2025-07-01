@@ -11,7 +11,17 @@ router.get('/auth/url', (req, res) => {
   const redirectUri = env.TIKTOK_REDIRECT_URI;
   const state = Math.random().toString(36).substring(7);
   
-  const authUrl = `https://business-api.tiktok.com/portal/auth?app_id=${clientKey}&state=${state}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+  // Add required scope parameter for TikTok Business API
+  const scope = 'user.info.basic,business.get,ad_management.get,page.manage';
+  
+  const authUrl = `https://business-api.tiktok.com/portal/auth?app_id=${clientKey}&state=${state}&scope=${encodeURIComponent(scope)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+  
+  console.log('Generated TikTok auth URL:', {
+    clientKey: clientKey?.substring(0, 10) + '...',
+    redirectUri,
+    scope,
+    state
+  });
   
   res.json({ authUrl, state, redirectUri });
 });
