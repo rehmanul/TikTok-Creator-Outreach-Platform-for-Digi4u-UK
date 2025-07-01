@@ -1,0 +1,42 @@
+2025-07-01T01:24:12.286351131Z ==> Cloning from https://github.com/rehmanul/TikTok-Creator-Outreach-Platform-for-Digi4u-UK
+2025-07-01T01:24:13.197820836Z ==> Checking out commit 40bf7e994e7d625e78831148db4c135847b46fef in branch main
+2025-07-01T01:24:26.5859152Z ==> Using Node.js version 22.16.0 (default)
+2025-07-01T01:24:26.625217251Z ==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+2025-07-01T01:24:28.771140712Z ==> Using Bun version 1.1.0 (default)
+2025-07-01T01:24:28.771157382Z ==> Docs on specifying a Bun version: https://render.com/docs/bun-version
+2025-07-01T01:24:28.842474336Z ==> Running build command 'npm install --include=dev && node deploy-build.js'...
+2025-07-01T01:24:39.545587526Z 
+2025-07-01T01:24:39.545612007Z added 518 packages, and audited 519 packages in 11s
+2025-07-01T01:24:39.545625637Z 
+2025-07-01T01:24:39.545638338Z 66 packages are looking for funding
+2025-07-01T01:24:39.545642708Z   run `npm fund` for details
+2025-07-01T01:24:39.566861764Z 
+2025-07-01T01:24:39.610091384Z 7 vulnerabilities (1 low, 6 moderate)
+2025-07-01T01:24:39.610124335Z 
+2025-07-01T01:24:39.610132015Z To address issues that do not require attention, run:
+2025-07-01T01:24:39.610136195Z   npm audit fix
+2025-07-01T01:24:39.610139645Z 
+2025-07-01T01:24:39.610142935Z To address all issues (including breaking changes), run:
+2025-07-01T01:24:39.610148285Z   npm audit fix --force
+2025-07-01T01:24:39.610151845Z 
+2025-07-01T01:24:39.610157126Z Run `npm audit` for details.
+2025-07-01T01:24:39.769053786Z node:internal/modules/cjs/loader:1404
+2025-07-01T01:24:39.769071036Z   throw err;
+2025-07-01T01:24:39.769073426Z   ^
+2025-07-01T01:24:39.769075126Z 
+2025-07-01T01:24:39.769077477Z Error: Cannot find module '/opt/render/project/src/deploy-build.js'
+2025-07-01T01:24:39.769079406Z     at Function._resolveFilename (node:internal/modules/cjs/loader:1401:15)
+2025-07-01T01:24:39.769081206Z     at defaultResolveImpl (node:internal/modules/cjs/loader:1057:19)
+2025-07-01T01:24:39.769082906Z     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1062:22)
+2025-07-01T01:24:39.769085027Z     at Function._load (node:internal/modules/cjs/loader:1211:37)
+2025-07-01T01:24:39.769086757Z     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+2025-07-01T01:24:39.769088507Z     at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+2025-07-01T01:24:39.769091027Z     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+2025-07-01T01:24:39.769092677Z     at node:internal/main/run_main_module:36:49 {
+2025-07-01T01:24:39.769097097Z   code: 'MODULE_NOT_FOUND',
+2025-07-01T01:24:39.769099767Z   requireStack: []
+2025-07-01T01:24:39.769101487Z }
+2025-07-01T01:24:39.769103027Z 
+2025-07-01T01:24:39.769104687Z Node.js v22.16.0
+2025-07-01T01:24:39.77184659Z ==> Build failed 😞
+2025-07-01T01:24:39.77186018Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
