@@ -1,0 +1,54 @@
+🚀 Starting production build...
+📍 Current directory: /opt/render/project/src
+📦 Building frontend...
+❌ Build failed: Command failed: npx vite build
+failed to load config from /opt/render/project/src/vite.config.ts
+error during build:
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'vite' imported from /opt/render/project/src/node_modules/.vite-temp/vite.config.ts.timestamp-1751331940982-1f94e0cac3545.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:256:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:854:18)
+    at defaultResolve (node:internal/modules/esm/resolve:984:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:780:12)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:704:25)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:687:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:305:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:137:49)
+Error details: Error: Command failed: npx vite build
+failed to load config from /opt/render/project/src/vite.config.ts
+error during build:
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'vite' imported from /opt/render/project/src/node_modules/.vite-temp/vite.config.ts.timestamp-1751331940982-1f94e0cac3545.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:256:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:854:18)
+    at defaultResolve (node:internal/modules/esm/resolve:984:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:780:12)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:704:25)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:687:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:305:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:137:49)
+    at genericNodeError (node:internal/errors:983:15)
+    at wrappedFn (node:internal/errors:537:14)
+    at ChildProcess.exithandler (node:child_process:414:12)
+    at ChildProcess.emit (node:events:518:28)
+    at maybeClose (node:internal/child_process:1101:16)
+    at ChildProcess._handle.onexit (node:internal/child_process:304:5) {
+  code: 1,
+  killed: false,
+  signal: null,
+  cmd: 'npx vite build',
+  stdout: '',
+  stderr: 'failed to load config from /opt/render/project/src/vite.config.ts\n' +
+    'error during build:\n' +
+    "Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'vite' imported from /opt/render/project/src/node_modules/.vite-temp/vite.config.ts.timestamp-1751331940982-1f94e0cac3545.mjs\n" +
+    '    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:256:9)\n' +
+    '    at packageResolve (node:internal/modules/esm/resolve:768:81)\n' +
+    '    at moduleResolve (node:internal/modules/esm/resolve:854:18)\n' +
+    '    at defaultResolve (node:internal/modules/esm/resolve:984:11)\n' +
+    '    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:780:12)\n' +
+    '    at #cachedDefaultResolve (node:internal/modules/esm/loader:704:25)\n' +
+    '    at ModuleLoader.resolve (node:internal/modules/esm/loader:687:38)\n' +
+    '    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:305:38)\n' +
+    '    at ModuleJob._link (node:internal/modules/esm/module_job:137:49)\n'
+}
+==> Build failed 😞
