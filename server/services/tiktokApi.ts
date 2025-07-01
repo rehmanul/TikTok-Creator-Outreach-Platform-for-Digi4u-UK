@@ -463,7 +463,7 @@ export class TikTokAPIService {
           'Content-Type': 'application/json'
         },
         params: {
-          advertiser_ids: `[${this.advertiserId}]`
+          advertiser_ids: JSON.stringify([this.advertiserId])
         }
       });
 
