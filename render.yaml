@@ -16,7 +16,7 @@ services:
           name: tiktok-affiliate-bot
           property: port
       - key: TIKTOK_REDIRECT_URI
-        value: https://dgtok-4u.onrender.com/api/tiktok/callback
+        value: https://dgtok-4u.onrender.com/api/tiktok/oauth-callback
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRES_IN

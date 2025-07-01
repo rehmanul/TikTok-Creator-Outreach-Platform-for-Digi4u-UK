@@ -43,7 +43,7 @@ export const getEnvironmentConfig = (): EnvironmentConfig => {
     TIKTOK_CLIENT_KEY: process.env.TIKTOK_CLIENT_KEY || '7519035078651936769',
     TIKTOK_CLIENT_SECRET: process.env.TIKTOK_CLIENT_SECRET || '',
     TIKTOK_ADVERTISER_ID: process.env.TIKTOK_ADVERTISER_ID || '7519829315018588178',
-    TIKTOK_REDIRECT_URI: process.env.TIKTOK_REDIRECT_URI || 'https://tiktok-affiliate-bot.onrender.com/api/tiktok/callback',
+    TIKTOK_REDIRECT_URI: process.env.TIKTOK_REDIRECT_URI || 'https://dgtok-4u.onrender.com/api/tiktok/oauth-callback',
     TIKTOK_ACCESS_TOKEN: process.env.TIKTOK_ACCESS_TOKEN,
     
     GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
