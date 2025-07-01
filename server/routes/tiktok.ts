@@ -16,34 +16,11 @@ router.get('/auth/url', (req, res) => {
   res.json({ authUrl, state, redirectUri });
 });
 
-// TikTok OAuth callback (legacy route)
+// TikTok OAuth callback (legacy route - redirects to main callback)
 router.get('/callback', async (req, res) => {
-  try {
-    const { auth_code, state } = req.query;
-    
-    if (!auth_code) {
-      return res.status(400).json({ error: 'Authorization code is required' });
-    }
-    
-    const accessToken = await tiktokApi.authenticate(auth_code as string);
-    
-    // Validate the connection and get seller info
-    const validation = await tiktokApi.validateConnection();
-    
-    if (validation.connected) {
-      // Store the session (in production, use proper session management)
-      // For now, redirect back to the main app
-      res.redirect('/?tiktok_connected=true');
-    } else {
-      res.status(500).json({ 
-        error: 'Failed to validate TikTok connection',
-        details: validation.error
-      });
-    }
-  } catch (error) {
-    console.error('TikTok callback error:', error);
-    res.status(500).json({ error: 'Failed to connect TikTok account' });
-  }
+  // Redirect to the correct OAuth callback route with all parameters
+  const queryString = new URLSearchParams(req.query as Record<string, string>).toString();
+  res.redirect(`/api/tiktok/oauth-callback?${queryString}`);
 });
 
 // TikTok OAuth callback (matches TikTok app configuration)
@@ -72,7 +49,14 @@ router.get('/oauth-callback', async (req, res) => {
     }
   } catch (error) {
     console.error('TikTok OAuth callback error:', error);
-    res.status(500).json({ error: 'Failed to connect TikTok account' });
+    console.error('Error details:', error instanceof Error ? error.message : error);
+    console.error('Auth code received:', req.query.auth_code);
+    console.error('State received:', req.query.state);
+    res.status(500).json({ 
+      error: 'Failed to connect TikTok account',
+      details: error instanceof Error ? error.message : 'Unknown error',
+      authCode: req.query.auth_code ? 'received' : 'missing'
+    });
   }
 });
 
