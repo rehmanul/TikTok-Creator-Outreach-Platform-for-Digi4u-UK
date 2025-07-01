@@ -1,79 +1,43 @@
-// Environment configuration for TikTok affiliate marketing platform
-export interface EnvironmentConfig {
-  // Server configuration
-  PORT: number;
-  NODE_ENV: 'development' | 'production' | 'test';
-  
-  // JWT configuration
-  JWT_SECRET: string;
-  JWT_EXPIRES_IN: string;
-  
-  // TikTok Business API
-  TIKTOK_CLIENT_KEY: string;
-  TIKTOK_CLIENT_SECRET: string;
-  TIKTOK_ADVERTISER_ID: string;
-  TIKTOK_REDIRECT_URI: string;
-  TIKTOK_ACCESS_TOKEN?: string;
-  
-  // Google Gemini AI
-  GEMINI_API_KEY: string;
-  
+import { z } from 'zod';
+
+const envSchema = z.object({
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  PORT: z.string().transform(Number).default(5000),
+
   // Database
-  DATABASE_URL?: string;
-  
-  // Optional external services
-  STRIPE_SECRET_KEY?: string;
-  SENDGRID_API_KEY?: string;
-  TWILIO_ACCOUNT_SID?: string;
-  TWILIO_AUTH_TOKEN?: string;
-  TWILIO_PHONE_NUMBER?: string;
-  
-  // Security
-  WEBHOOK_SECRET?: string;
+  DATABASE_URL: z.string().optional(),
+
+  // JWT
+  JWT_SECRET: z.string().default('dev-secret-key-change-in-production'),
+  JWT_EXPIRES_IN: z.string().default('30d'),
+
+  // TikTok API
+  TIKTOK_CLIENT_KEY: z.string().default('7519035078651936769'),
+  TIKTOK_CLIENT_SECRET: z.string().optional(),
+  TIKTOK_ADVERTISER_ID: z.string().default('7519829315018588178'),
+  TIKTOK_ACCESS_TOKEN: z.string().optional(),
+  TIKTOK_REDIRECT_URI: z.string().optional(),
+
+  // AI Service
+  GEMINI_API_KEY: z.string().optional(),
+
+  // Webhooks
+  WEBHOOK_SECRET: z.string().optional(),
+
+  // Replit specific
+  REPL_ID: z.string().optional(),
+  REPL_SLUG: z.string().optional(),
+  REPL_OWNER: z.string().optional(),
+});
+
+export type Environment = z.infer<typeof envSchema>;
+
+export const env = envSchema.parse(process.env);
+
+// Set dynamic redirect URI for Replit deployment
+if (env.REPL_ID && env.REPL_SLUG && env.REPL_OWNER && !env.TIKTOK_REDIRECT_URI) {
+  env.TIKTOK_REDIRECT_URI = `https://${env.REPL_ID}.${env.REPL_SLUG}.${env.REPL_OWNER}.replit.app/api/tiktok/oauth-callback`;
 }
 
-export const getEnvironmentConfig = (): EnvironmentConfig => {
-  const config: EnvironmentConfig = {
-    PORT: parseInt(process.env.PORT || '5000', 10),
-    NODE_ENV: (process.env.NODE_ENV as any) || 'development',
-    
-    JWT_SECRET: process.env.JWT_SECRET || 'dev-secret-key-change-in-production',
-    JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '30d', // Extended to 30 days
-    
-    TIKTOK_CLIENT_KEY: process.env.TIKTOK_CLIENT_KEY || '7519035078651936769',
-    TIKTOK_CLIENT_SECRET: process.env.TIKTOK_CLIENT_SECRET || '',
-    TIKTOK_ADVERTISER_ID: process.env.TIKTOK_ADVERTISER_ID || '7519829315018588178',
-    TIKTOK_REDIRECT_URI: process.env.TIKTOK_REDIRECT_URI || 'https://dgtok-4u.onrender.com/api/tiktok/oauth-callback',
-    TIKTOK_ACCESS_TOKEN: process.env.TIKTOK_ACCESS_TOKEN,
-    
-    GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
-    
-    DATABASE_URL: process.env.DATABASE_URL,
-    
-    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
-    SENDGRID_API_KEY: process.env.SENDGRID_API_KEY,
-    TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
-    TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
-    TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER,
-    
-    WEBHOOK_SECRET: process.env.WEBHOOK_SECRET,
-  };
-
-  // Validate required environment variables only in production
-  if (config.NODE_ENV === 'production') {
-    const requiredVars = [
-      'TIKTOK_CLIENT_SECRET',
-      'GEMINI_API_KEY'
-    ];
-
-    const missingVars = requiredVars.filter(varName => !config[varName as keyof EnvironmentConfig]);
-    
-    if (missingVars.length > 0) {
-      throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
-    }
-  }
-
-  return config;
-};
-
-export const env = getEnvironmentConfig();
+export const isDevelopment = env.NODE_ENV === 'development';
+export const isProduction = env.NODE_ENV === 'production';
