@@ -61,26 +61,50 @@ export class TikTokAPIService {
   // OAuth 2.0 authentication with TikTok Business API
   async authenticate(authCode: string): Promise<string> {
     try {
-      const response = await axios.post(`${this.baseURL}/oauth2/access_token/`, {
-        client_key: this.clientKey,
-        client_secret: this.clientSecret,
+      console.log('TikTok authentication attempt with:', {
+        baseURL: this.baseURL,
+        clientKey: this.clientKey?.substring(0, 10) + '...',
+        authCode: authCode?.substring(0, 10) + '...',
+        hasClientSecret: !!this.clientSecret
+      });
+
+      const requestData = {
+        app_id: this.clientKey,
+        secret: this.clientSecret,
         auth_code: authCode,
         grant_type: 'authorization_code'
-      }, {
+      };
+
+      console.log('Making request to TikTok OAuth endpoint...');
+      const response = await axios.post(`${this.baseURL}/oauth2/access_token/`, requestData, {
         headers: {
           'Content-Type': 'application/json'
-        }
+        },
+        timeout: 10000
+      });
+
+      console.log('TikTok OAuth response:', {
+        status: response.status,
+        code: response.data?.code,
+        message: response.data?.message
       });
 
       if (response.data.code === 0) {
         this.accessToken = response.data.data.access_token;
+        console.log('TikTok authentication successful');
         return this.accessToken;
       } else {
-        throw new Error(`Authentication failed: ${response.data.message}`);
+        console.error('TikTok authentication failed:', response.data);
+        throw new Error(`Authentication failed: ${response.data.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('TikTok authentication error:', error);
-      throw new Error('Failed to authenticate with TikTok Business API');
+      if (axios.isAxiosError(error)) {
+        console.error('Response data:', error.response?.data);
+        console.error('Response status:', error.response?.status);
+        console.error('Response headers:', error.response?.headers);
+      }
+      throw new Error(`Failed to authenticate with TikTok Business API: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 

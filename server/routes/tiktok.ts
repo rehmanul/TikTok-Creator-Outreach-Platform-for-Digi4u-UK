@@ -26,22 +26,32 @@ router.get('/callback', async (req, res) => {
 // TikTok OAuth callback (matches TikTok app configuration)
 router.get('/oauth-callback', async (req, res) => {
   try {
+    console.log('TikTok OAuth callback received:', {
+      authCode: req.query.auth_code ? 'present' : 'missing',
+      state: req.query.state ? 'present' : 'missing',
+      allParams: Object.keys(req.query)
+    });
+
     const { auth_code, state } = req.query;
     
     if (!auth_code) {
+      console.error('Missing authorization code in callback');
       return res.status(400).json({ error: 'Authorization code is required' });
     }
     
+    console.log('Attempting TikTok authentication...');
     const accessToken = await tiktokApi.authenticate(auth_code as string);
+    console.log('Authentication successful, validating connection...');
     
     // Validate the connection and get seller info
     const validation = await tiktokApi.validateConnection();
     
     if (validation.connected) {
-      // Store the session (in production, use proper session management)
-      // For now, redirect back to the main app
+      console.log('TikTok connection validated successfully');
+      // Redirect to frontend with success
       res.redirect('/?tiktok_connected=true');
     } else {
+      console.error('TikTok connection validation failed:', validation.error);
       res.status(500).json({ 
         error: 'Failed to validate TikTok connection',
         details: validation.error
@@ -50,12 +60,15 @@ router.get('/oauth-callback', async (req, res) => {
   } catch (error) {
     console.error('TikTok OAuth callback error:', error);
     console.error('Error details:', error instanceof Error ? error.message : error);
-    console.error('Auth code received:', req.query.auth_code);
-    console.error('State received:', req.query.state);
+    console.error('Auth code received:', req.query.auth_code ? 'yes' : 'no');
+    console.error('State received:', req.query.state ? 'yes' : 'no');
+    
+    // Return detailed error for debugging
     res.status(500).json({ 
       error: 'Failed to connect TikTok account',
       details: error instanceof Error ? error.message : 'Unknown error',
-      authCode: req.query.auth_code ? 'received' : 'missing'
+      authCode: req.query.auth_code ? 'received' : 'missing',
+      timestamp: new Date().toISOString()
     });
   }
 });
