@@ -4,7 +4,7 @@ services:
     name: tiktok-affiliate-bot
     env: node
     plan: free
-    buildCommand: npm install && node build-production.js
+    buildCommand: npm install --include=dev && node build.js
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
