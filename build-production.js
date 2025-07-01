@@ -7,6 +7,11 @@
 
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const execAsync = promisify(exec);
 
@@ -15,10 +20,6 @@ console.log('🚀 Starting production build...');
 try {
   // Ensure we're in the correct directory
   console.log('📍 Current directory:', process.cwd());
-  
-  // Install vite and dependencies if not present
-  console.log('🔧 Ensuring dependencies...');
-  await execAsync('npm install vite @vitejs/plugin-react typescript --save-dev');
   
   // Step 1: Build frontend using existing config with production env
   console.log('📦 Building frontend...');
@@ -39,6 +40,7 @@ try {
     console.warn('Build warnings:', viteError);
   }
   console.log('✅ Frontend build completed');
+  console.log('Frontend output:', viteOutput);
 
   // Step 2: Build backend
   console.log('🔧 Building backend...');
@@ -50,10 +52,12 @@ try {
     console.warn('Build warnings:', esbuildError);
   }
   console.log('✅ Backend build completed');
+  console.log('Backend output:', esbuildOutput);
 
   console.log('🎉 Production build completed successfully!');
 
 } catch (error) {
   console.error('❌ Build failed:', error.message);
+  console.error('Error details:', error);
   process.exit(1);
 }

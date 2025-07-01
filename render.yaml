@@ -27,7 +27,7 @@ services:
         sync: false
       - key: TIKTOK_ADVERTISER_ID
         sync: false
-      - key: TIKTOK_ACCESS_token
+      - key: TIKTOK_ACCESS_TOKEN
         sync: false
       - key: GEMINI_API_KEY
         sync: false
