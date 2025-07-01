@@ -13,11 +13,19 @@ const execAsync = promisify(exec);
 console.log('🚀 Starting production build...');
 
 try {
+  // Ensure we're in the correct directory
+  console.log('📍 Current directory:', process.cwd());
+  
+  // Install vite and dependencies if not present
+  console.log('🔧 Ensuring dependencies...');
+  await execAsync('npm install vite @vitejs/plugin-react typescript --save-dev');
+  
   // Step 1: Build frontend using existing config with production env
   console.log('📦 Building frontend...');
   const { stdout: viteOutput, stderr: viteError } = await execAsync(
-    'npx vite build --config vite.config.ts',
+    'npx vite build',
     { 
+      cwd: process.cwd(),
       env: {
         ...process.env,
         NODE_ENV: 'production',

@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FP 410 Funktionsattest</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .form-container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .form-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .form-title {
+            font-size: 24px;
+            font-weight: bold;
+            text-decoration: underline;
+            margin-bottom: 20px;
+        }
+        
+        .form-subtitle {
+            font-style: italic;
+            font-size: 14px;
+            line-height: 1.4;
+            color: #666;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            border: 1px solid #000;
+            padding: 20px;
+        }
+        
+        .section-title {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+        
+        .question-number {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: inline-block;
+            margin-bottom: 5px;
+            font-weight: normal;
+        }
+        
+        .form-group input[type="text"],
+        .form-group input[type="date"],
+        .form-group input[type="number"],
+        .form-group textarea {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .form-group input[type="text"] {
+            width: 300px;
+        }
+        
+        .form-group input[type="date"] {
+            width: 150px;
+        }
+        
+        .form-group input[type="number"] {
+            width: 60px;
+        }
+        
+        .form-group textarea {
+            width: 100%;
+            min-height: 60px;
+            resize: vertical;
+        }
+        
+        .radio-group {
+            display: flex;
+            gap: 20px;
+            margin-top: 5px;
+        }
+        
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: normal;
+        }
+        
+        .radio-group input[type="radio"] {
+            margin: 0;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            gap: 20px;
+            margin-top: 5px;
+        }
+        
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: normal;
+        }
+        
+        .page-break {
+            page-break-before: always;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #333;
+        }
+        
+        .signature-section {
+            display: flex;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        
+        .signature-field {
+            border-bottom: 1px solid #000;
+            min-height: 50px;
+            flex: 1;
+        }
+        
+        .address-section {
+            display: flex;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        
+        .address-field {
+            flex: 1;
+        }
+        
+        .footer-text {
+            font-size: 11px;
+            font-style: italic;
+            margin-top: 30px;
+            text-align: center;
+            color: #666;
+        }
+        
+        .instruction-box {
+            background-color: #f0f0f0;
+            padding: 15px;
+            border: 1px solid #ccc;
+            margin-bottom: 20px;
+        }
+        
+        .indent {
+            margin-left: 20px;
+        }
+        
+        .wide-input {
+            width: 100%;
+        }
+        
+        .narrow-input {
+            width: 120px;
+        }
+        
+        .medium-input {
+            width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <!-- Page 1 -->
+        <div class="form-header">
+            <div class="form-title">FP 410 Funktionsattest</div>
+            <div class="form-subtitle">
+                Attesten indgår som en del af aftalen mellem Forsikring & Pension og Lægeforeningen om attester og helbredsoplysninger mv.<br>
+                Det er aftalt mellem Forsikring & Pension og Lægeforeningen, at attesten kan udfyldes af enhver med lægefaglig baggrund.
+            </div>
+        </div>
+        
+        <!-- Insurance company section -->
+        <div class="section">
+            <div class="section-title">Udfyldes af forsikringsselskabet/rekvirenten:</div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="navn">Navn:</label>
+                    <input type="text" id="navn" name="navn" class="wide-input">
+                </div>
+                <div class="form-group">
+                    <label for="cpr">CPR-nr.:</label>
+                    <input type="text" id="cpr" name="cpr" class="narrow-input" pattern="[0-9]{10}" maxlength="10">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="stilling">Stilling:</label>
+                <input type="text" id="stilling" name="stilling" class="wide-input">
+            </div>
+            
+            <div class="form-group">
+                <label for="skadenr">Skadenr.:</label>
+                <input type="text" id="skadenr" name="skadenr" class="medium-input">
+            </div>
+        </div>
+        
+        <!-- Doctor section -->
+        <div class="section">
+            <div class="section-title">Udfyldes af den undersøgende læge</div>
+            
+            <div class="question-number">1</div>
+            
+            <div class="form-group">
+                <label>a) Er du patientens alment praktiserende læge?</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="spg1a" value="nej"> NEJ</label>
+                    <label><input type="radio" name="spg1a" value="ja"> JA</label>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>b) Hvis nej til a): Har du en anden behandlingsmæssig relation til patienten (speciale, behandlingssted)?</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="spg1b" value="nej"> NEJ</label>
+                    <label><input type="radio" name="spg1b" value="ja"> JA</label>
+                </div>
+                
+                <div class="form-group indent">
+                    <label>Hvis JA, hvilken?</label>
+                    <textarea name="spg1b_beskrivelse" rows="2" class="wide-input"></textarea>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>c) Hvis nej til a og b): Jeg har ingen behandlingsmæssig relation til patienten og har kun set patienten ifm. denne attestudstedelse?</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="spg1c" value="nej"> NEJ</label>
+                    <label><input type="radio" name="spg1c" value="ja"> JA</label>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Question 2 - Diagnoses -->
+        <div class="section">
+            <div class="question-number">2</div>
+            <div style="font-weight: bold; margin-bottom: 15px;">Diagnose angivet på dansk og latin</div>
+            
+            <div class="form-group">
+                <label for="diagnose1_dansk">1. Dansk:</label>
+                <input type="text" id="diagnose1_dansk" name="diagnose1_dansk" class="wide-input">
+            </div>
+            
+            <div class="form-group">
+                <label for="diagnose1_latin">1. Latin:</label>
+                <input type="text" id="diagnose1_latin" name="diagnose1_latin" class="wide-input">
+            </div>
+            
+            <div class="form-group">
+                <label for="diagnose2_dansk">2. Dansk:</label>
+                <input type="text" id="diagnose2_dansk" name="diagnose2_dansk" class="wide-input">
+            </div>
+            
+            <div class="form-group">
+                <label for="diagnose2_latin">2. Latin:</label>
+                <input type="text" id="diagnose2_latin" name="diagnose2_latin" class="wide-input">
+            </div>
+            
+            <div class="form-group">
+                <label for="diagnose3_dansk">3. Dansk:</label>
+                <input type="text" id="diagnose3_dansk" name="diagnose3_dansk" class="wide-input">
+            </div>
+            
+            <div class="form-group">
+                <label for="diagnose3_latin">3. Latin:</label>
+                <input type="text" id="diagnose3_latin" name="diagnose3_latin" class="wide-input">
+            </div>
+        </div>
+        
+        <!-- Page 2 -->
+        <div class="page-break">
+            <div style="text-align: center; font-weight: bold; margin-bottom: 20px;">FP 410 Funktionsattest Side 2 af 3</div>
+            
+            <!-- Question 3 -->
+            <div class="section">
+                <div class="question-number">3</div>
+                
+                <div class="form-group">
+                    <label>Skønner du, at fortsat eller yderligere behandling kan føre til en bedring i tilstanden?</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="spg3" value="nej"> NEJ</label>
+                        <label><input type="radio" name="spg3" value="ja"> JA</label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Hvis JA, hvilken behandling eller genoptræning (kort beskrivelse)?</label>
+                    <textarea name="spg3_behandling" rows="3" class="wide-input"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>Hvis NEJ, fra hvilket tidspunkt skønnes der ikke at have været væsentlig fremgang eller bedring i tilstanden?</label>
+                    <input type="date" name="spg3_dato">
+                    <span style="font-size: 12px; color: #666;">(dag/md/år)</span>
+                </div>
+            </div>
+            
+            <!-- Question 4 -->
+            <div class="section">
+                <div class="question-number">4</div>
+                
+                <div class="form-group">
+                    <label>Er der foretaget billeddiagnostisk undersøgelse (fx røntgen, UL, CT, MR)?</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="spg4" value="nej"> NEJ</label>
+                        <label><input type="radio" name="spg4" value="ja"> JA</label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Hvis JA, udfyldes:</label>
+                    <div style="margin-top: 10px;">
+                        <label>Hvilken type undersøgelse, hvor og hvornår? (kopi af beskrivelse bedes om muligt vedlagt)</label>
+                        <textarea name="spg4_type" rows="2" class="wide-input"></textarea>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <label>Med hvilket resultat?</label>
+                        <textarea name="spg4_resultat" rows="2" class="wide-input"></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Instruction box -->
+            <div class="instruction-box">
+                <div style="font-weight: bold;">Til lægen (udfyldes af selskabet):</div>
+                <div style="margin-top: 10px;">
+                    Spørgsmål 5a og 5b i attesten bedes besvaret for en periode på 
+                    <input type="number" value="10" style="width: 40px; text-align: center; border: none; border-bottom: 1px solid #000; background: transparent;">
+                    år forud for skadestidspunktet, som er:
+                    <input type="date" style="border: none; border-bottom: 1px solid #000; background: transparent;">
+                </div>
+            </div>
+            
+            <!-- Question 5 -->
+            <div class="section">
+                <div class="question-number">5</div>
+                
+                <div class="form-group">
+                    <label>a) Har patienten dig bekendt inden for de seneste [10] år haft sygdomme, klager eller symptomer i samme region?</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="spg5a" value="nej"> NEJ</label>
+                        <label><input type="radio" name="spg5a" value="ja"> JA</label>
+                    </div>
+                    <div class="form-group indent">
+                        <label>Hvis JA, udfyldes:</label>
+                        <div><label>Hvilke?</label></div>
+                        <textarea name="spg5a_hvilke" rows="2" class="wide-input"></textarea>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>b) Skønner du på det foreliggende grundlag, at sygdomme eller andre forhold inden for de seneste [10] år har haft nogen form for indflydelse på den nuværende skade eller sygdom eller har forværret dens følger?</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="spg5b" value="nej"> NEJ</label>
+                        <label><input type="radio" name="spg5b" value="ja"> JA</label>
+                    </div>
+                    <div class="form-group indent">
+                        <label>Hvis JA, udfyldes:</label>
+                        <div><label>Hvilke?</label></div>
+                        <textarea name="spg5b_hvilke" rows="2" class="wide-input"></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Question 6 -->
+            <div class="section">
+                <div class="question-number">6</div>
+                
+                <div class="form-group">
+                    <label>a) Oplyser patienten at have genoptaget arbejdet eller de daglige funktioner?</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="spg6a" value="nej"> NEJ</label>
+                        <label><input type="radio" name="spg6a" value="ja"> JA</label>
+                    </div>
+                    <div class="form-group indent">
+                        <label>Hvis JA, udfyldes:</label>
+                        <div>
+                            <label>Ca. fra dato:</label>
+                            <input type="date" name="spg6a_dato">
+                            <span style="font-size: 12px; color: #666;">(dag/md/år)</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="font-size: 14px; margin: 15px 0; font-style: italic;">
+                    6 b) eller 6 c) udfyldes kun, hvis Nej til 6 a):
+                </div>
+                
+                <div class="form-group">
+                    <label>b) Kan du på nuværende tidspunkt skønne, hvornår patienten kan varetage sit arbejde?</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" name="spg6b_delvist"> Delvist</label>
+                        <label><input type="checkbox" name="spg6b_fuld"> På fuld tid</label>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <label>Ca. fra dato:</label>
+                        <input type="date" name="spg6b_dato">
+                        <span style="font-size: 12px; color: #666;">(dag/md/år)</span>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>c) Kan de på nuværende tidspunkt skønne, hvornår patienten kan varetage sine daglige funktioner fuldt ud?</label>
+                    <div style="font-size: 12px; font-style: italic; margin-bottom: 10px;">
+                        (Besvares kun for personer uden arbejde, fx pensionister eller børn)
+                    </div>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" name="spg6c_delvist"> Delvist</label>
+                        <label><input type="checkbox" name="spg6c_fuld"> På fuld tid</label>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <label>Ca. fra dato:</label>
+                        <input type="date" name="spg6c_dato">
+                        <span style="font-size: 12px; color: #666;">(dag/md/år)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Page 3 -->
+        <div class="page-break">
+            <div style="text-align: center; font-weight: bold; margin-bottom: 20px;">FP 410 Funktionsattest Side 3 af 3</div>
+            
+            <!-- Question 7 -->
+            <div class="section">
+                <div class="question-number">7</div>
+                
+                <div class="form-group">
+                    <label>Hvilke klager fremfører patienten?</label>
+                    <textarea name="spg7_klager" rows="4" class="wide-input"></textarea>
+                </div>
+            </div>
+            
+            <!-- Question 8 -->
+            <div class="section">
+                <div class="question-number">8</div>
+                
+                <div class="form-group">
+                    <label>Kan skaden eller sygdommen påvises objektivt?</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="spg8" value="nej"> NEJ</label>
+                        <label><input type="radio" name="spg8" value="ja"> JA</label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Question 9 -->
+            <div class="section">
+                <div class="question-number">9</div>
+                
+                <div class="form-group">
+                    <label for="undersoegelsesdato">Undersøgelsens dato</label>
+                    <div style="margin-top: 10px;">
+                        <label>Dato:</label>
+                        <input type="date" id="undersoegelsesdato" name="undersoegelsesdato">
+                        <span style="font-size: 12px; color: #666;">(dag/md/år)</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Additional notes -->
+            <div style="margin: 20px 0; font-size: 12px; color: #666;">
+                Der kan evt. vedlægges relevante udskrivningsbreve og undersøgelsesresultater m.v.<br>
+                De lægelige oplysninger og skøn, der fremgår af denne attest, har snæver sammenhæng med attestens formål.<br>
+                Medmindre andet er anført, er jeg indforstået med, at selskabet kan udlevere en kopi af attesten til patienten eller dennes repræsentant.
+            </div>
+            
+            <!-- Signature section -->
+            <div class="section">
+                <div style="font-weight: bold; margin-bottom: 20px;">
+                    Denne attest er udfærdiget af mig i overensstemmelse med det foreliggende journalmateriale, mit kendskab til patienten, mine spørgsmål til patienten og min undersøgelse af patienten:
+                </div>
+                
+                <div class="signature-section">
+                    <div style="flex: 1;">
+                        <div style="margin-bottom: 10px;">
+                            <input type="date" name="underskrift_dato">
+                        </div>
+                        <div style="text-align: center; font-size: 12px;">Dato</div>
+                    </div>
+                    
+                    <div style="flex: 2;">
+                        <div class="signature-field"></div>
+                        <div style="text-align: center; font-size: 12px;">Lægens underskrift</div>
+                    </div>
+                </div>
+                
+                <div class="address-section">
+                    <div class="address-field">
+                        <div style="font-weight: bold; margin-bottom: 10px;">Nøjagtig adresse (stempel):</div>
+                        <textarea name="adresse" rows="4" style="width: 100%; border: 1px solid #ccc;"></textarea>
+                    </div>
+                    
+                    <div class="address-field">
+                        <div style="font-weight: bold; margin-bottom: 10px;">Attesten sendes i lukket kuvert mærket "Attest" til:</div>
+                        <textarea name="sendes_til" rows="4" style="width: 100%; border: 1px solid #ccc;"></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer-text">
+                Medmindre andet er aftalt forud for anmodningen til lægen om udfyldelse af denne attest, honoreres lægen efter fremsendelse af regning i henhold til lægens forretningsbetingelser. 04.05.41.04
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Add some basic form validation and interactivity
+        document.addEventListener('DOMContentLoaded', function() {
+            // CPR number validation
+            const cprInput = document.getElementById('cpr');
+            if (cprInput) {
+                cprInput.addEventListener('input', function() {
+                    this.value = this.value.replace(/\D/g, '').substring(0, 10);
+                });
+            }
+            
+            // Auto-set examination date to today
+            const today = new Date().toISOString().split('T')[0];
+            const examDate = document.getElementById('undersoegelsesdato');
+            if (examDate && !examDate.value) {
+                examDate.value = today;
+            }
+            
+            // Show/hide conditional fields based on radio button selections
+            const radioButtons = document.querySelectorAll('input[type="radio"]');
+            radioButtons.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    // This could be expanded to show/hide relevant sections
+                    // based on the answers provided
+                });
+            });
+        });
+    </script>
+</body>
+</html>
