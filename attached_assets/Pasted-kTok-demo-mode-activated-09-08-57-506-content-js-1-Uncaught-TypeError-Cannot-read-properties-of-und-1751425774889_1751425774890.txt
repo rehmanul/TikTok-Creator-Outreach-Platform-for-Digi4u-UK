@@ -1,0 +1,85 @@
+kTok demo mode activated
+09:08:57.506 content.js:1 Uncaught TypeError: Cannot read properties of undefined (reading 'query')
+    at content.js:1:13Understand this error
+09:08:57.521 index.js:1 content loaded
+09:08:57.589 index.59b2ae62.js:3 Content Script: Initializing
+09:08:57.766 /api/analytics/activity:1 
+            
+            
+           Failed to load resource: the server responded with a status of 401 ()Understand this error
+09:08:57.768 /api/campaigns/bot-status:1 
+            
+            
+           Failed to load resource: the server responded with a status of 401 ()Understand this error
+09:08:57.779 /api/analytics/categories:1 
+            
+            
+           Failed to load resource: the server responded with a status of 401 ()Understand this error
+09:08:57.786 /api/analytics/performance:1 
+            
+            
+           Failed to load resource: the server responded with a status of 401 ()Understand this error
+09:08:57.787 /api/creators/top-performers:1 
+            
+            
+           Failed to load resource: the server responded with a status of 401 ()Understand this error
+09:08:57.789 /api/analytics/campaign-stats:1 
+            
+            
+           Failed to load resource: the server responded with a status of 401 ()Understand this error
+09:08:58.063 /api/campaigns/bot-status:1 
+            
+            
+           Failed to load resource: the server responded with a status of 401 ()Understand this error
+09:08:58.068 /api/analytics/campaign-stats:1 
+            
+            
+           Failed to load resource: the server responded with a status of 401 ()Understand this error
+09:09:01.903 index-DOcQPTul.js:311 Error fetching creators: Error: No authentication token found
+    at y (index-DOcQPTul.js:311:5950)
+    at index-DOcQPTul.js:311:5854
+    at Cc (index-DOcQPTul.js:40:24263)
+    at Ji (index-DOcQPTul.js:40:42318)
+    at X_ (index-DOcQPTul.js:40:41166)
+    at zn (index-DOcQPTul.js:40:40215)
+    at dg (index-DOcQPTul.js:40:36825)
+    at Pn (index-DOcQPTul.js:38:3274)
+    at index-DOcQPTul.js:40:34207
+y @ index-DOcQPTul.js:311Understand this error
+09:09:03.061 /api/campaigns/automation/stats:1 
+            
+            
+           Failed to load resource: the server responded with a status of 401 ()Understand this error
+09:09:03.159 /api/campaigns/test-connection:1 
+            
+            
+           Failed to load resource: the server responded with a status of 401 ()Understand this error
+09:09:04.973 index-DOcQPTul.js:311 Error fetching creators: Error: No authentication token found
+    at y (index-DOcQPTul.js:311:5950)
+    at index-DOcQPTul.js:311:5854
+    at Cc (index-DOcQPTul.js:40:24263)
+    at Ji (index-DOcQPTul.js:40:42318)
+    at X_ (index-DOcQPTul.js:40:41166)
+    at zn (index-DOcQPTul.js:40:40215)
+    at dg (index-DOcQPTul.js:40:36825)
+    at Pn (index-DOcQPTul.js:38:3274)
+    at index-DOcQPTul.js:40:34207
+y @ index-DOcQPTul.js:311Understand this error
+09:09:08.554 /api/campaigns/automation/stats:1 
+            
+            
+           Failed to load resource: the server responded with a status of 401 ()Understand this error
+09:09:08.697 /api/campaigns/test-connection:1 
+            
+            
+           Failed to load resource: the server responded with a status of 401 ()Understand this error
+09:09:19.756 index-DOcQPTul.js:311 Error fetching creators: Error: No authentication token found
+    at y (index-DOcQPTul.js:311:5950)
+    at index-DOcQPTul.js:311:5854
+    at Cc (index-DOcQPTul.js:40:24263)
+    at Ji (index-DOcQPTul.js:40:42318)
+    at X_ (index-DOcQPTul.js:40:41166)
+    at zn (index-DOcQPTul.js:40:40215)
+    at dg (index-DOcQPTul.js:40:36825)
+    at Pn (index-DOcQPTul.js:38:3274)
+    at index-DOcQPTul.js:40:34207
