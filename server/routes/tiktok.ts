@@ -79,9 +79,8 @@ router.get('/oauth-callback', async (req, res) => {
       } else {
         console.error('TikTok connection validation failed:', validation.error);
         
-        // For validation failures, try using demo mode
-        console.log('Falling back to demo mode for development');
-        res.redirect('/?tiktok_connected=demo');
+        // Redirect with validation error instead of demo mode
+        res.redirect('/?tiktok_error=validation_failed');
       }
     } catch (authError) {
       console.error('TikTok authentication failed:', authError);
@@ -98,25 +97,14 @@ router.get('/oauth-callback', async (req, res) => {
         }
       }
       
-      // For other auth errors, fall back to demo mode in development
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Development mode: falling back to demo authentication');
-        res.redirect('/?tiktok_connected=demo');
-      } else {
-        res.redirect('/?tiktok_error=auth_failed');
-      }
+      // Redirect with auth error
+      res.redirect('/?tiktok_error=auth_failed');
     }
   } catch (error) {
     console.error('TikTok OAuth callback error:', error);
     console.error('Error details:', error instanceof Error ? error.message : error);
     
-    // In development, use demo mode as fallback
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Development fallback: using demo mode');
-      res.redirect('/?tiktok_connected=demo');
-    } else {
-      res.redirect('/?tiktok_error=callback_failed');
-    }
+    res.redirect('/?tiktok_error=callback_failed');
   }
 });
 

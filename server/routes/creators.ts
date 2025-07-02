@@ -22,7 +22,8 @@ const searchSchema = z.object({
   limit: z.number().default(20)
 });
 
-router.get('/search', async (req, res) => {
+// Search creators
+router.get('/search', authMiddleware, async (req, res) => {
   try {
     const queryParams = {
       categories: req.query.categories ? req.query.categories.toString().split(',') : undefined,
@@ -34,11 +35,11 @@ router.get('/search', async (req, res) => {
       page: req.query.page ? parseInt(req.query.page.toString()) : 1,
       limit: req.query.limit ? parseInt(req.query.limit.toString()) : 20
     };
-    
+
     console.log('Creator search params:', queryParams);
-    
+
     let creators = [];
-    
+
     try {
       // Try to search in database first
       creators = await storage.searchCreators({
@@ -49,13 +50,13 @@ router.get('/search', async (req, res) => {
         minEngagement: queryParams.minEngagement,
         minGmv: queryParams.minGmv
       });
-      
+
       console.log('Database creators found:', creators.length);
     } catch (dbError) {
       console.error('Database search error:', dbError);
       creators = [];
     }
-    
+
     // If no database results, provide mock data for demo
     if (creators.length === 0) {
       console.log('No database results, providing mock creators');
@@ -136,7 +137,7 @@ router.get('/search', async (req, res) => {
           tiktokId: 'mock_5'
         }
       ];
-      
+
       // Filter mock creators based on search criteria
       creators = creators.filter(creator => {
         if (queryParams.categories && queryParams.categories.length > 0) {
@@ -147,32 +148,32 @@ router.get('/search', async (req, res) => {
           );
           if (!hasMatchingCategory) return false;
         }
-        
+
         if (creator.followerCount < queryParams.minFollowers) return false;
         if (creator.followerCount > queryParams.maxFollowers) return false;
-        
+
         if (queryParams.location && queryParams.location !== 'UK') {
           if (!creator.location.toLowerCase().includes(queryParams.location.toLowerCase())) {
             return false;
           }
         }
-        
+
         const engagementRate = parseFloat(creator.engagementRate);
         if (engagementRate < queryParams.minEngagement) return false;
-        
+
         const gmv = parseInt(creator.gmv);
         if (gmv < queryParams.minGmv) return false;
-        
+
         return true;
       });
     }
-    
+
     // Paginate results
     const start = (queryParams.page - 1) * queryParams.limit;
     const paginatedCreators = creators.slice(start, start + queryParams.limit);
-    
+
     console.log('Returning creators:', paginatedCreators.length);
-    
+
     res.json({
       creators: paginatedCreators,
       total: creators.length,
@@ -192,11 +193,11 @@ router.get('/search', async (req, res) => {
 router.get('/:id/insights', async (req, res) => {
   try {
     const creator = await storage.getCreator(parseInt(req.params.id));
-    
+
     if (!creator) {
       return res.status(404).json({ message: 'Creator not found' });
     }
-    
+
     try {
       const insights = await tiktokApi.getCreatorInsights(creator.tiktokId);
       res.json(insights);
@@ -230,44 +231,44 @@ router.get('/:id', async (req, res) => {
   try {
     const creatorId = parseInt(req.params.id);
     const creator = await storage.getCreator(creatorId);
-    
+
     if (!creator) {
       return res.status(404).json({ message: 'Creator not found' });
     }
-    
+
     // Update metrics from TikTok if data is stale (older than 24 hours)
     const lastUpdated = new Date(creator.lastUpdated);
     const isStale = Date.now() - lastUpdated.getTime() > 24 * 60 * 60 * 1000;
-    
+
     if (isStale) {
       try {
         // Get updated profile data
         const profile = await tiktokApi.getCreatorProfile(creator.username);
-        
+
         // Get recent video metrics
         const videos = await tiktokApi.getCreatorVideos(creator.tiktokId, 20);
         const avgEngagement = videos.reduce((sum, v) => sum + v.engagement_rate, 0) / videos.length;
         const avgViews = Math.round(videos.reduce((sum, v) => sum + v.view_count, 0) / videos.length);
-        
+
         // Get GMV data
         const gmv = await tiktokApi.getCreatorGMV(
           creator.tiktokId,
           new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
           new Date()
         );
-        
+
         // Update creator in database
         await storage.updateCreatorProfile(creatorId, {
           followerCount: profile.follower_count,
           bio: profile.bio,
           isVerified: profile.is_verified
         });
-        
+
         await storage.updateCreatorMetrics(creatorId, {
           engagementRate: avgEngagement.toFixed(2),
           avgViews,
         });
-        
+
         // Update the creator object
         Object.assign(creator, {
           followerCount: profile.follower_count,
@@ -281,7 +282,7 @@ router.get('/:id', async (req, res) => {
         console.error('Failed to update creator metrics:', error);
       }
     }
-    
+
     res.json(creator);
   } catch (error) {
     console.error('Error fetching creator:', error);
@@ -294,25 +295,25 @@ router.post('/:id/analyze', async (req, res) => {
   try {
     const creatorId = parseInt(req.params.id);
     const { campaignId } = z.object({ campaignId: z.number() }).parse(req.body);
-    
+
     const creator = await storage.getCreator(creatorId);
     if (!creator) {
       return res.status(404).json({ message: 'Creator not found' });
     }
-    
+
     const campaign = await storage.getCampaign(campaignId);
     if (!campaign) {
       return res.status(404).json({ message: 'Campaign not found' });
     }
-    
+
     // Verify campaign ownership
     if (campaign.userId !== req.user!.id) {
       return res.status(403).json({ message: 'Access denied' });
     }
-    
+
     // Get AI analysis
     const analysis = await aiService.analyzeCreator(creator, campaign);
-    
+
     res.json(analysis);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -328,17 +329,17 @@ router.get('/trending/:category', async (req, res) => {
   try {
     const { category } = req.params;
     const { location } = z.object({ location: z.string().optional() }).parse(req.query);
-    
+
     // Get trending hashtags first
     const trendingHashtags = await tiktokApi.getTrendingHashtags(category, location);
-    
+
     // Search for creators using trending content
     const creators = await storage.searchCreators({
       categories: [category],
       location,
       minEngagement: 3.0 // Higher engagement for trending
     });
-    
+
     res.json({
       creators: creators.slice(0, 10),
       trendingHashtags
@@ -358,7 +359,7 @@ router.get('/top-performers', authMiddleware, async (req, res) => {
 
     for (const campaign of campaigns) {
       const collaborations = await storage.getCollaborationsByCampaign(campaign.id);
-      
+
       for (const collaboration of collaborations) {
         const creator = await storage.getCreator(collaboration.creatorId);
         if (creator) {
@@ -369,7 +370,7 @@ router.get('/top-performers', authMiddleware, async (req, res) => {
             revenue: 0,
             status: collaboration.status
           };
-          
+
           existing.revenue += Number(collaboration.revenue || 0);
           creatorPerformance.set(creator.id, existing);
         }
@@ -398,7 +399,7 @@ router.get('/top-performers', authMiddleware, async (req, res) => {
 router.post('/invite', async (req, res) => {
   try {
     const { creatorId, message, contentType, products, commissionRate } = req.body;
-    
+
     const creator = await storage.getCreator(creatorId);
     if (!creator) {
       return res.status(404).json({ message: 'Creator not found' });

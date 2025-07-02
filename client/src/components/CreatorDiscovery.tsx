@@ -47,7 +47,7 @@ const CreatorDiscovery: React.FC = () => {
   const fetchCreators = async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -62,14 +62,14 @@ const CreatorDiscovery: React.FC = () => {
         minGmv: filters.gmvMin.toString(),
         ...(filters.category !== 'all' && { categories: filters.category })
       });
-      
+
       const response = await fetch(`/api/creators/search?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch creators');
       }
@@ -101,7 +101,7 @@ const CreatorDiscovery: React.FC = () => {
 
   const sendBulkInvitations = async () => {
     if (selectedCreators.length === 0) return;
-    
+
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -116,7 +116,7 @@ const CreatorDiscovery: React.FC = () => {
         },
         body: JSON.stringify({ creatorIds: selectedCreators })
       });
-      
+
       if (response.ok) {
         setSelectedCreators([]);
         fetchCreators(); // Refresh the list
@@ -305,11 +305,11 @@ const CreatorDiscovery: React.FC = () => {
                     onChange={() => toggleCreatorSelection(creator.id)}
                     className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                   />
-                  
+
                   <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
                     <User className="w-6 h-6 text-gray-500" />
                   </div>
-                  
+
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-2">
                       <h4 className="text-lg font-semibold text-gray-900">
@@ -320,7 +320,7 @@ const CreatorDiscovery: React.FC = () => {
                         <CheckCircle className="w-4 h-4 text-blue-500" />
                       )}
                     </div>
-                    
+
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
                       <div className="flex items-center space-x-2">
                         <Users className="w-4 h-4 text-gray-400" />
@@ -347,7 +347,7 @@ const CreatorDiscovery: React.FC = () => {
                         </span>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center space-x-4 mb-3">
                       {creator.location && (
                         <div className="flex items-center space-x-1">
@@ -362,7 +362,7 @@ const CreatorDiscovery: React.FC = () => {
                         </span>
                       </div>
                     </div>
-                    
+
                     {creator.categories && creator.categories.length > 0 && (
                       <div className="mb-3">
                         <span className="text-sm font-medium text-gray-700">Categories: </span>
@@ -379,7 +379,7 @@ const CreatorDiscovery: React.FC = () => {
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="flex flex-col space-y-2">
                     <button 
                       onClick={() => sendIndividualInvitation(creator)}

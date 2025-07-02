@@ -40,36 +40,30 @@ export const generateToken = (user: { id: number; email: string; role: string; c
   );
 };
 
-export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    
-    if (!token) {
-      return res.status(401).json({ message: 'Authentication required' });
-    }
+export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
 
-    // Handle demo tokens
-    if (token.startsWith('demo-token-')) {
-      req.user = {
-        id: 1,
-        email: 'demo@example.com',
-        role: 'admin',
-        companyName: 'Demo Company'
-      };
-      return next();
-    }
+  if (!token) {
+    return res.status(401).json({ error: 'No authentication token found' });
+  }
 
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
+  // Allow demo tokens in development
+  if (token === 'demo-token' || token === 'tiktok-session-token') {
     req.user = {
-      id: decoded.id,
-      email: decoded.email,
-      role: decoded.role,
-      companyName: decoded.companyName
+      id: 'demo-seller',
+      email: 'demo@tiktokseller.com',
+      companyName: 'Demo TikTok Seller',
+      role: 'seller'
     };
+    return next();
+  }
 
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as any;
+    req.user = payload;
     next();
   } catch (error) {
-    return res.status(401).json({ message: 'Invalid or expired token' });
+    return res.status(401).json({ error: 'Invalid authentication token' });
   }
 };
 
