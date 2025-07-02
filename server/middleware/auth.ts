@@ -47,12 +47,14 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
     return res.status(401).json({ error: 'No authentication token found' });
   }
 
-  // Allow demo tokens in development
-  if (token === 'demo-token' || token === 'tiktok-session-token') {
+  // Only allow tiktok-session-token for TikTok authenticated users
+  if (token === 'tiktok-session-token') {
+    // This would normally validate against stored TikTok session
+    // For now, we'll need proper TikTok auth validation here
     req.user = {
-      id: 'demo-seller',
-      email: 'demo@tiktokseller.com',
-      companyName: 'Demo TikTok Seller',
+      id: 'tiktok-user',
+      email: 'user@tiktok.com',
+      companyName: 'TikTok Seller',
       role: 'seller'
     };
     return next();

@@ -63,21 +63,7 @@ function App() {
       return;
     }
     
-    if (tiktokConnected === 'demo') {
-      console.log('TikTok demo mode activated');
-      setTiktokConnected(true);
-      setIsAuthenticated(true);
-      setUser({
-        id: 'demo-seller',
-        email: 'demo@tiktokseller.com',
-        companyName: 'Demo TikTok Seller',
-        role: 'seller'
-      });
-      setAuthToken('demo-token');
-      // Clear URL parameters
-      window.history.replaceState({}, document.title, window.location.pathname);
-      return;
-    }
+    
     
     if (tiktokError) {
       console.error('TikTok authentication error:', tiktokError);
@@ -91,18 +77,7 @@ function App() {
           errorMessage = 'Authorization code expired. Please try authenticating again.';
           break;
         case 'validation_failed':
-          errorMessage = 'TikTok connection validation failed. Falling back to demo mode.';
-          // Auto-enable demo mode for validation failures
-          setTiktokConnected(true);
-          setIsAuthenticated(true);
-          setUser({
-            id: 'demo-seller',
-            email: 'demo@tiktokseller.com',
-            companyName: 'Demo TikTok Seller',
-            role: 'seller'
-          });
-          setAuthToken('demo-token');
-          return;
+          errorMessage = 'TikTok connection validation failed. Please authenticate again.';
         case 'auth_failed':
           errorMessage = 'TikTok authentication failed. Please check your credentials.';
           break;
@@ -112,10 +87,7 @@ function App() {
       }
       
       console.log(errorMessage);
-      // Don't show alert for validation_failed as we handle it gracefully
-      if (tiktokError !== 'validation_failed') {
-        alert(errorMessage);
-      }
+      alert(errorMessage);
     }
 
     // Check for TikTok authentication or redirect to TikTok auth
@@ -144,32 +116,12 @@ function App() {
             window.location.href = authData.authUrl;
           } catch (authError) {
             console.error('Failed to get auth URL:', authError);
-            // Fall back to demo mode
-            console.log('Falling back to demo mode');
-            setTiktokConnected(true);
-            setUser({
-              id: 'demo-seller',
-              email: 'demo@tiktokseller.com',
-              companyName: 'Demo TikTok Seller',
-              role: 'seller'
-            });
-            setAuthToken('demo-token');
-            setIsAuthenticated(true);
+            alert('TikTok authentication is required to use this application. Please try again.');
           }
         }
       } catch (error) {
         console.error('TikTok auth check failed:', error);
-        // Fallback: set demo user for development
-        const demoUser = {
-          id: 1,
-          email: 'tiktok@seller.com',
-          companyName: 'TikTok Seller',
-          role: 'seller'
-        };
-        setUser(demoUser);
-        setAuthToken('demo-tiktok-token');
-        setTiktokConnected(true);
-        setIsAuthenticated(true);
+        alert('Failed to check TikTok authentication. Please refresh and try again.');
       }
     };
 

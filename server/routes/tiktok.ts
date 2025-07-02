@@ -130,8 +130,8 @@ router.get('/auth/status', async (req, res) => {
       res.json({
         connected: true,
         userInfo: {
-          id: validation.advertiserInfo?.advertiser_id || 'demo-seller',
-          email: validation.advertiserInfo?.contact_email || 'seller@tiktok.com',
+          id: validation.advertiserInfo?.advertiser_id || 'unknown',
+          email: validation.advertiserInfo?.contact_email || 'unknown@tiktok.com',
           companyName: validation.advertiserInfo?.advertiser_name || 'TikTok Seller',
           role: 'seller'
         },
@@ -141,54 +141,17 @@ router.get('/auth/status', async (req, res) => {
       });
     } else {
       console.log('TikTok connection validation failed:', validation.error);
-      
-      // In development, provide demo user info
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Development mode: providing demo user');
-        res.json({
-          connected: true,
-          userInfo: {
-            id: 'demo-seller',
-            email: 'demo@tiktokseller.com',
-            companyName: 'Demo TikTok Seller',
-            role: 'seller'
-          },
-          accessToken: 'demo-token',
-          permissions: ['creator_marketplace', 'messaging'],
-          isDemoMode: true
-        });
-      } else {
-        res.json({
-          connected: false,
-          error: validation.error || 'Connection validation failed'
-        });
-      }
+      res.json({
+        connected: false,
+        error: validation.error || 'Connection validation failed'
+      });
     }
   } catch (error) {
     console.error('TikTok status check error:', error);
-    
-    // In development, provide demo response
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Development fallback: providing demo user due to error');
-      res.json({
-        connected: true,
-        userInfo: {
-          id: 'demo-seller',
-          email: 'demo@tiktokseller.com',
-          companyName: 'Demo TikTok Seller',
-          role: 'seller'
-        },
-        accessToken: 'demo-token',
-        permissions: ['creator_marketplace', 'messaging'],
-        isDemoMode: true,
-        error: 'Using demo mode due to API error'
-      });
-    } else {
-      res.json({
-        connected: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
+    res.json({
+      connected: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 });
 
