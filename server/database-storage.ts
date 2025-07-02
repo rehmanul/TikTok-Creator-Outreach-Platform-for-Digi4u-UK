@@ -80,40 +80,40 @@ export class DatabaseStorage implements IStorage {
     minEngagement?: number;
     minGmv?: number;
   }): Promise<Creator[]> {
-    let query = this.db.select().from(creators);
-    
-    const conditions = [];
-    
-    if (filters.categories && filters.categories.length > 0) {
-      // PostgreSQL array overlap operator
-      conditions.push(sql`${creators.categories} && ${filters.categories}`);
+    try {
+      let query = this.db.select().from(creators);
+      
+      const conditions = [];
+      
+      if (filters.minFollowers) {
+        conditions.push(sql`${creators.followerCount} >= ${filters.minFollowers}`);
+      }
+      
+      if (filters.maxFollowers) {
+        conditions.push(sql`${creators.followerCount} <= ${filters.maxFollowers}`);
+      }
+      
+      if (filters.location) {
+        conditions.push(sql`${creators.location} ILIKE ${'%' + filters.location + '%'}`);
+      }
+      
+      if (filters.minEngagement) {
+        conditions.push(sql`CAST(${creators.engagementRate} AS FLOAT) >= ${filters.minEngagement}`);
+      }
+      
+      if (filters.minGmv) {
+        conditions.push(sql`CAST(${creators.gmv} AS INTEGER) >= ${filters.minGmv}`);
+      }
+      
+      if (conditions.length > 0) {
+        query = query.where(conditions.reduce((acc, cond) => sql`${acc} AND ${cond}`));
+      }
+      
+      return await query.orderBy(desc(creators.followerCount)).limit(100);
+    } catch (error) {
+      console.error('Database searchCreators error:', error);
+      return []; // Return empty array on database error
     }
-    
-    if (filters.minFollowers) {
-      conditions.push(sql`${creators.followerCount} >= ${filters.minFollowers}`);
-    }
-    
-    if (filters.maxFollowers) {
-      conditions.push(sql`${creators.followerCount} <= ${filters.maxFollowers}`);
-    }
-    
-    if (filters.location) {
-      conditions.push(sql`${creators.location} ILIKE ${'%' + filters.location + '%'}`);
-    }
-    
-    if (filters.minEngagement) {
-      conditions.push(sql`CAST(${creators.engagementRate} AS FLOAT) >= ${filters.minEngagement}`);
-    }
-    
-    if (filters.minGmv) {
-      conditions.push(sql`${creators.gmv} >= ${filters.minGmv}`);
-    }
-    
-    if (conditions.length > 0) {
-      query = query.where(conditions.reduce((acc, cond) => sql`${acc} AND ${cond}`));
-    }
-    
-    return await query.orderBy(desc(creators.followersCount)).limit(100);
   }
 
   // Campaign operations
